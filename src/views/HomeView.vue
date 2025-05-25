@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import Logo from '@/components/logoIcon.vue';
-import Profile from '@/components/profileCard.vue';
+import ProfileCard from '@/components/profileCard.vue';
 import PlayerSearch from '@/components/playerSearch.vue';
 import FileUpload from '@/components/fileUpload.vue';
 import ReplayCard from '@/components/replayCard.vue';
+import { DemoResponse } from '@/replay/types';
 </script>
 
 <template>
@@ -30,10 +31,7 @@ import ReplayCard from '@/components/replayCard.vue';
       </div>
       <div class="profileContainer">
         <ReplayCard :replayName="'replay.ttrm'" :usernames="['fred', 'ryan', 'fedewa']" />
-        <Profile />
-        <Profile />
-        <Profile />
-
+        <ProfileCard :username="'freyhoe'" :records="DemoResponse.data!.entries"></ProfileCard>
       </div>
     </div>
 

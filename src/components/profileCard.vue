@@ -6,19 +6,24 @@
         <div class="card">
           <img class="profileImg" src="https://tetr.io/res/avatar.png">
           <div class="userData">
-            <div class="username">freyhoe</div>
+            <div class="username">{{ props.username }}</div>
           </div>
         </div>
       </slot>
     </div>
     <div class="back">
       <slot name="back">
-        <div class="card backCard" style="color:wheat">
-          <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px" @click="$emit('deleteCard')" />
-          <div class="croppedImgContainer">
-            <div style="position: absolute; mix-blend-mode: difference; z-index: 3; color: white; font-size: x-large;">
-              View Graphs</div>
-            <GraphIcon style="transform: scale(2);" />
+        <div class="card backCard">
+          <div class="openStatsLink" style="position: absolute; top:20px; left: 20px">Open Stats</div>
+          <CloseIcon class="icon" style="position: absolute; top:20px; right: 20px" @click="$emit('deleteCard')" />
+          <div class="recordContainer">
+            <div v-for="rec of records" v-bind:key="rec._id">
+              <div class="link-box">
+                <ExitIcon class="iconStroke"></ExitIcon>
+              </div>
+              <div class="score-box">Score: 85</div>
+              <div class="name-box">Full Name Here</div>
+            </div>
           </div>
         </div>
       </slot>
@@ -27,8 +32,15 @@
 </template>
 <script setup lang="ts">
 import { ref } from "vue";
-import GraphIcon from "./graphIcon.vue";
 import CloseIcon from "./closeIcon.vue";
+import { type RecordEntry } from "@/replay/types/leagueRecord";
+import ExitIcon from "./exitIcon.vue";
+const props = defineProps<{
+  username: string,
+  error?: string,
+  records: RecordEntry[]
+}>()
+
 let inActiveTimeout = -1
 
 const flipped = ref(false);
@@ -43,128 +55,121 @@ const unflip = () => {
 };
 </script>
 <style lang="css" scoped>
-.graphImg {
-  transition: transform 0.2s ease;
+.recordContainer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  overflow-y: scroll;
+  display: flex;
+  flex-direction: column;
 }
 
-.graphImg:hover {
-  transform: scale(1.1);
+.recordContainer div {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
 }
 
-.userFetchStatus {
-  min-height: 10px;
+.link-box {
+  flex: 1;
+  background-color: #e0f7fa;
+  text-align: center;
 }
 
-.usernameInput {
-  background-color: var(--background);
-  color: var(--f_high);
-  font-size: 24px;
-  border: none;
-  background: transparent;
-  max-width: 200px;
-  outline: none;
+.score-box {
+  flex: 2;
+  background-color: #ffe0b2;
+  text-align: center;
 }
 
+.name-box {
+  flex: 3;
+  background-color: #c8e6c9;
+  text-align: center;
+}
 
 .card-container {
   margin: 0;
   padding: 0;
   position: relative;
   box-sizing: border-box;
-
-  .front,
-  .back {
-    box-sizing: border-box;
-    height: 100%;
-    width: 100%;
-    display: block;
-    position: absolute;
-    backface-visibility: hidden;
-    transform-style: preserve-3d;
-    transition: -webkit-transform ease 500ms;
-    transition: transform ease 500ms;
-  }
-
-  .front {
-    z-index: 2;
-    transform: rotateY(0deg);
-    /* front tile styles go here! */
-  }
-
-  .back {
-    transform: rotateY(-180deg);
-    font-size: 20px;
-    /* back tile styles go here! */
-  }
-
-  &.flipped {
-    .front {
-      transform: rotateY(180deg);
-    }
-
-    .back {
-      transform: rotateY(0deg);
-    }
-  }
 }
 
-.profileActionContainer {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 20px;
+.card-container .front,
+.card-container .back {
+  box-sizing: border-box;
+  height: 100%;
+  width: 100%;
+  display: block;
+  position: absolute;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  transition: transform ease 500ms;
 }
 
-.profileActionContainer button {
-  background: transparent;
-  color: var(--f_low);
-  border: 2px solid var(--f_low);
-  padding: 10px;
-  border-radius: 5px;
-  transition: border-color 0.2s ease, color 0.2s ease;
+.card-container .front {
+  z-index: 2;
+  transform: rotateY(0deg);
 }
 
-.profileActionContainer button:hover {
-  border-color: var(--f_med);
-  color: var(--f_med);
+.card-container .back {
+  transform: rotateY(-180deg);
+  font-size: 20px;
 }
 
-.exitIcon:hover {
-  stroke: var(--f_med);
+.card-container.flipped .front {
+  transform: rotateY(180deg);
 }
 
-.exitIcon {
-  stroke: var(--f_high);
+.card-container.flipped .back {
+  transform: rotateY(0deg);
 }
 
-.editIcon {
+.icon {
   fill: var(--f_low);
   transition: fill 0.2s ease;
 }
 
-.editIcon:hover {
+.icon:hover {
   fill: var(--f_high);
 }
 
+.icon:active {
+  fill: var(--f_med);
+}
 
-.lastUpdated {
-  margin-left: 20px;
-  font-size: small;
+.iconStroke {
+  stroke: var(--f_low);
+  transition: stroke 0.2s ease;
+}
+
+.iconStroke:hover {
+  stroke: var(--f_high);
+}
+
+.iconStroke:active {
+  stroke: var(--f_med);
+}
+
+.openStatsLink {
+  user-select: none;
+  color: var(--f_low);
+  transition: color 0.2s ease;
+}
+
+.openStatsLink:hover {
   color: var(--f_high);
 }
 
-.lastUpdated span {
-  margin-left: 5px;
+.openStatsLink:active {
   color: var(--f_med);
 }
 
 .username {
-  margin-top: auto;
-  margin-bottom: auto;
-  margin-left: auto;
-  margin-right: auto;
+  margin: auto;
   color: var(--f_high);
   font-size: 24px;
   border: none;
@@ -172,6 +177,7 @@ const unflip = () => {
   max-width: 200px;
   outline: none;
   text-align: center;
+  user-select: none;
 }
 
 .profileImg {
@@ -181,27 +187,6 @@ const unflip = () => {
   border: 1px solid var(--b_high);
   margin: 20px;
   margin-top: 40px;
-}
-
-.croppedImgContainer {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 200px;
-  height: 200px;
-  border-radius: 20px;
-  border: 1px solid var(--b_high);
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  transition: transform 0.2s ease
-}
-
-.croppedImgContainer:hover {
-  transform: translate(-50%, -50%) scale(0.9);
 }
 
 .userData {
