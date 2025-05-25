@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import Logo from '@/components/logoIcon.vue';
-import ProfileCard from '@/components/profileCard.vue';
+import Logo from '@/components/logoIcon.vue';;
 import PlayerSearch from '@/components/playerSearch.vue';
 import FileUpload from '@/components/fileUpload.vue';
-import ReplayCard from '@/components/replayCard.vue';
-import { DemoResponse } from '@/replay/types';
+import type { ProfileData } from '@/replay/types/profile';
+import { ref } from 'vue';
+import ProfileCard from '@/components/profileCard.vue';
+
+const cardData = ref<ProfileData[]>([])
+
+
 </script>
 
 <template>
@@ -22,17 +26,24 @@ import { DemoResponse } from '@/replay/types';
           </nav>
         </div>
       </header>
-      <FileUpload></FileUpload>
+      <FileUpload />
     </div>
 
     <div style="display: flex; flex-direction: column;">
       <div>
-        <PlayerSearch></PlayerSearch>
+        <PlayerSearch @response="(resp) => {
+          cardData.unshift(resp)
+        }" />
       </div>
-      <div class="profileContainer">
-        <ReplayCard :replayName="'replay.ttrm'" :usernames="['fred', 'ryan', 'fedewa']" />
-        <ProfileCard :username="'freyhoe'" :records="DemoResponse.data!.entries"></ProfileCard>
-      </div>
+      <TransitionGroup class="cardContainer" tag="div" name="list">
+        <ProfileCard v-for="card of cardData" v-show="card.avatarLoaded" :key="card.userId" :username="card.username"
+          :avatar="card.avatar" :records="card.response.data!.entries" :id="card.userId" @profileLoad="() => {
+            card.avatarLoaded = true
+          }" @exit="() => {
+            console.log('heyyy')
+            cardData = cardData.filter(x => x.userId != card.userId)
+          }" />
+      </TransitionGroup>
     </div>
 
   </div>
@@ -40,6 +51,28 @@ import { DemoResponse } from '@/replay/types';
 </template>
 
 <style scoped>
+.list-move,
+/* apply transition to moving elements */
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s ease;
+}
+
+.list-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.list-leave-to {
+  opacity: 0;
+}
+
+/* ensure leaving items are taken out of layout flow so that moving
+   animations can be calculated correctly. */
+.list-leave-active {
+  position: absolute;
+}
+
 *::-webkit-scrollbar {
   display: none;
 }
@@ -50,7 +83,7 @@ import { DemoResponse } from '@/replay/types';
   scrollbar-width: none;
 }
 
-.profileContainer {
+.cardContainer {
   width: 300px;
   height: 400px;
   overflow-y: auto;
@@ -58,7 +91,7 @@ import { DemoResponse } from '@/replay/types';
   display: flex;
   flex-direction: column;
   gap: 340px;
-  mask-image: linear-gradient(transparent, #000 5%, #000 80%, transparent);
+  mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
 }
 
 .navButton {

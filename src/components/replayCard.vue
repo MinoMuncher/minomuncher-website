@@ -22,7 +22,8 @@
     <div class="back">
       <slot name="back">
         <div class="card backCard">
-          <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px" @click="$emit('deleteCard')" />
+          <div class="openStatsLink" style="position: absolute; top:20px; left: 20px; z-index: 3">Open Stats</div>
+          <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px" @click="$emit('exit')" />
           <div class="userList">
             <label v-for="name of props.usernames" v-bind:key="name" class="checkContainer">{{ name }}
               <input type="checkbox" v-bind:value="name" v-model="checkedNames">
@@ -44,22 +45,39 @@ const props = defineProps({
   usernames: { type: Array<string>, required: true }
 })
 
-let inActiveTimeout = -1
-
+defineEmits<{
+  (e: 'exit'): void
+}>()
 const checkedNames = ref<string[]>([])
+const inActiveTimeout = ref(-1)
 
 const flipped = ref(false);
 const flip = () => {
   flipped.value = true
-  clearTimeout(inActiveTimeout)
+  clearTimeout(inActiveTimeout.value)
 };
 const unflip = () => {
-  inActiveTimeout = setTimeout(() => {
+  inActiveTimeout.value = setTimeout(() => {
     flipped.value = false
   }, 100)
 };
 </script>
 <style lang="css" scoped>
+.openStatsLink {
+  user-select: none;
+  color: var(--f_low);
+  transition: color 0.2s ease;
+}
+
+.openStatsLink:hover {
+  color: var(--f_high);
+}
+
+.openStatsLink:active {
+  color: var(--f_med);
+}
+
+
 .fileUsers {
   display: flex;
   flex-direction: row;
