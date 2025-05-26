@@ -12,7 +12,7 @@
               <div v-for="(user, index) in props.users" :key="index">
                 <strong v-bind:style="{ color: defaultRainbow.green }" v-if="checkedNames.includes(user.username)">{{
                   user.username
-                }}</strong>
+                  }}</strong>
                 <span v-else> {{ user.username }}</span>
                 <span class="punct" v-if="index < props.users.length - 2">,</span>
                 <span style="white-space: nowrap; margin-left: 1ch;" class="punct"
@@ -64,6 +64,7 @@ const flipped = ref(false);
 const flip = () => {
   flipped.value = !flipped.value
   flipping.value = true
+  setTimeout(() => flipping.value = false, 200)
 };
 </script>
 <style lang="css" scoped>

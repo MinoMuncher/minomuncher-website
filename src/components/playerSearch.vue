@@ -26,8 +26,9 @@ async function onUsernameSubmit() {
   let userId: string | undefined
 
   try {
-    const resp = await fetch(`/api/user?username=${submittingUsername.value.toLowerCase()}`)
-    const js = await resp.json()
+    const resp = await fetch(`/api/user/${submittingUsername.value.toLowerCase()}`)
+    const txt = await resp.text()
+    const js = JSON.parse(txt)
     const id = js["data"]["_id"]
     const avatarRev: number | undefined = js["data"]['avatar_revision']
 
@@ -41,7 +42,7 @@ async function onUsernameSubmit() {
       throw Error("no user id found")
     }
     try {
-      const response = await fetch(`/api/league?id=${userId}`);
+      const response = await fetch(`/api/league/${userId}`);
       const json: LeagueResponse = await response.json();
 
       if (json.error !== undefined) {

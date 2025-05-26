@@ -121,6 +121,7 @@ const flipped = ref(false);
 const flip = () => {
   flipped.value = !flipped.value
   flipping.value = true
+  setTimeout(() => flipping.value = false, 200)
 };
 </script>
 <style lang="css" scoped>
