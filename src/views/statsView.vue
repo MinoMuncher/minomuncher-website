@@ -1,49 +1,132 @@
 <template>
-  <div ref="outerBody" id="outerBody"></div>
+  <div id="scene">
+    <div id="left-zone">
+      <ul class="list">
+        <li v-for="key in OrderedGraphTypes" v-bind:key="key" class="item">
+          <button v-bind:class="{ selected: selectedGraph === key || altSelectedGraph === key }"
+            @click="newGraph(key)">{{
+              key }}</button>
+        </li>
+        <li class="item">
+          <button @click="router.back()" :style="{ color: defaultRainbow.red }">
+            back</button>
+        </li>
+      </ul>
+    </div>
+    <div id="right-zone">
+      <TransitionGroup name="list">
+        <GraphWrapper class="graphWrapper" :data="demoStats" v-if="selectedGraph != undefined"
+          v-bind:type="selectedGraph"></GraphWrapper>
+        <GraphWrapper class="graphWrapper" :data="demoStats" v-else-if="altSelectedGraph != undefined"
+          v-bind:type="altSelectedGraph">
+        </GraphWrapper>
+      </TransitionGroup>
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
-import { createGraphs } from '@/graphs/generateGraphs';
+import router from '@/router';
+import { ref } from 'vue';
+import { OrderedGraphTypes, type GraphType } from '@/graphs/types';
+
 import { demoStats } from '@/replay/demo';
-import { onMounted, ref } from 'vue';
+import GraphWrapper from '@/components/graphWrapper.vue';
+import { defaultRainbow } from '@/theme/colors';
 
-const outerBody = ref<HTMLElement | undefined>()
+const selectedGraph = ref<GraphType | undefined>("clear types")
+const altSelectedGraph = ref<GraphType | undefined>(undefined)
 
-onMounted(() => {
-  if (outerBody.value === undefined) throw Error()
-  createGraphs(outerBody.value, demoStats)
-})
 
-//import type { CumulativeStats } from '@/replay/types/stats';
-//const props = defineProps<{ stats: CumulativeStats }>()
-
+function newGraph(t: GraphType) {
+  if (altSelectedGraph.value == undefined) {
+    altSelectedGraph.value = t
+    selectedGraph.value = undefined
+  } else {
+    altSelectedGraph.value = undefined
+    selectedGraph.value = t
+  }
+}
 </script>
 <style lang="css" scoped>
 @import url('https://fonts.googleapis.com/css2?family=Martel:wght@200;300;400;600;700;800;900&display=swap');
 
-#outerBody {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  /* 3 columns */
-  gap: 0px;
-  /* space between boxes */
-  width: 100%;
-  height: 100%;
-  /* fixed width container */
-  margin: 20px auto;
-
-  font-family: "Martel", serif;
-  font-weight: 700;
-  font-style: normal;
-  font-size: 10px;
+.graphWrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
-#outerBody svg {
-  height: 100px;
-  width: 100px;
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -100%);
+}
+
+.selected {
+  color: var(--f_high);
+  background-color: var(--b_med);
+}
+
+
+.list {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  width: 200px;
+  padding-top: 50px;
+  padding-bottom: 50px;
+
+}
+
+li {
+  display: flex;
   justify-content: center;
-  aspect-ratio: 1 / 1;
-  border-radius: 4px;
+}
+
+button {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  width: 100%;
+  background: none;
+  color: inherit;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  outline: inherit;
+  color: var(--f_low);
+}
+
+button:hover {
+  color: var(--f_high);
+}
+
+button:active {
+  color: var(--f_med);
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+#left-zone {
+  border-right: 3px solid var(--f_low);
+}
+
+#right-zone {
+  width: 700px;
+  position: relative;
+}
+
+
+#scene {
+  display: flex;
+  flex-direction: row;
 }
 </style>

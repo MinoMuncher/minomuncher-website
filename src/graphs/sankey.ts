@@ -3,7 +3,7 @@ import * as d3Sankey from "d3-sankey"
 import { defaultScheme } from "../theme/colors";
 
 
-const width = 500;
+const width = 800;
 const height = 500;
 
 export function createSankey<NodeName extends string>(
@@ -76,6 +76,8 @@ export function createSankey<NodeName extends string>(
         (d.target as d3Sankey.SankeyNode<{ name: NodeName; }, object>).name))
       .attr("stroke-width", d => d.width!)
       .style("mix-blend-mode", "multiply")
+      .append('title')
+      .text(d => `${(d.source as { name: string }).name} -> ${d.value} -> ${(d.target as { name: string }).name}`)
 
     //console.log(nodes)
 

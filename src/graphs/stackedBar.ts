@@ -58,7 +58,7 @@ export function createStackedBar<T extends StatMap>(rootDiv: HTMLElement, graphN
     .append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
-    .attr("viewBox", [0, 0, width, height])
+    .attr("viewBox", [0, 0, width + margin.left, height + margin.top + margin.bottom])
   //.attr("viewBox", [0, 0, width, height])
   //.attr("style", "max-width: 100%; height: auto; height: intrinsic;")
 
@@ -78,15 +78,20 @@ export function createStackedBar<T extends StatMap>(rootDiv: HTMLElement, graphN
     .attr('fill', d => colors[keys.indexOf(d.key)])
     .attr("font-size", "10")
 
-  groups
-    .selectAll('rect')
-    .data(d => d)
-    .enter()
-    .append('rect')
-    .attr('x', d => x(d.data.category)!)
-    .attr('y', d => y(d[1]))
-    .attr('height', d => y(d[0]) - y(d[1]))
-    .attr('width', x.bandwidth());
+  groups.each(function (layerData) {
+    // layerData is the full series for one key (e.g., [{[0,1], data}, {[1,2], data}, ...])
+    d3.select(this)
+      .selectAll('rect')
+      .data(layerData.map(d => ({ ...d, key: layerData.key }))) // attach the key to each rect datum
+      .enter()
+      .append('rect')
+      .attr('x', d => x(d.data.category)!)
+      .attr('y', d => y(d[1]))
+      .attr('height', d => y(d[0]) - y(d[1]))
+      .attr('width', x.bandwidth())
+      .append('title')
+      .text(d => `${d.data.stat[d.key]} ${Math.round(100 * d.data.stat[d.key as keyof T] / sumStats(d.data.stat))}%`);
+  });
 
   groups.each(function (series) {
     const group = d3.select(this);
