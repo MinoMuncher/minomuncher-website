@@ -116,16 +116,11 @@ function getRecordData(rec: RecordEntry) {
 }
 
 const checkedReplays = ref<string[]>(props.records.map(x => x.replayid))
-
-const inActiveTimeout = ref(-1)
-
 const flipping = ref(false)
 const flipped = ref(false);
 const flip = () => {
   flipped.value = !flipped.value
   flipping.value = true
-  setTimeout(() => flipping.value = false, 200)
-  clearTimeout(inActiveTimeout.value)
 };
 </script>
 <style lang="css" scoped>
