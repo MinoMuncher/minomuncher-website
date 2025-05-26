@@ -44,6 +44,11 @@ async function onDrop(e: DragEvent) {
           data: rawText,
           dataHash: md5(rawText)
         })
+      fetch("/api/replay", {
+        method: "POST",
+        body: rawText,
+      }).then(x=>x.text()).then(console.log)
+
       }
     } catch (e) {
       console.error(e)
