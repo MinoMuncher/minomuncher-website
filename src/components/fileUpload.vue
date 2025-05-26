@@ -1,13 +1,18 @@
 <template>
   <div class="dropZone" :data-active="active" @dragenter.prevent="setActive" @dragover.prevent="setActive"
-    @dragleave.prevent="setInactive" @drop.prevent="onDrop" :class="{ 'dropActive': active }">
-    drag and drop <br>ttrm files here
+    @dragleave.prevent="setInactive" @drop.prevent="onDrop" :class="{ 'dropActive': active }" v-text="dropText">
   </div>
 </template>
 
 <script setup lang="ts">
+import type { ReplayDropData } from '@/replay/types/replayDrop';
+import md5 from 'md5';
 import { onMounted, onUnmounted, ref } from 'vue'
-const emit = defineEmits(['files-dropped'])
+const emit = defineEmits<{
+  (e: 'fileUpload', value: ReplayDropData[]): void
+}>()
+
+const dropText = ref("drag and drop\nttrm files here")
 
 const active = ref(false)
 let inActiveTimeout: number = -1
@@ -22,12 +27,37 @@ function setInactive() {
   }, 50)
 }
 
-function onDrop(e: DragEvent) {
+async function onDrop(e: DragEvent) {
   if (!e.dataTransfer) {
     return
   }
   setInactive()
-  emit('files-dropped', [...e.dataTransfer.files])
+  const okayFiles: ReplayDropData[] = []
+  for (const file of e.dataTransfer.files) {
+    try {
+      const rawText = await file.text()
+      const rawData = JSON.parse(rawText)
+      if ('users' in rawData && Array.isArray(rawData['users'])) {
+        okayFiles.push({
+          fileName: file.name,
+          users: rawData['users'],
+          data: rawText,
+          dataHash: md5(rawText)
+        })
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
+  }
+  if (okayFiles.length > 0) {
+    emit('fileUpload', okayFiles)
+  } else if (e.dataTransfer.files.length > 0) {
+    dropText.value = "invalid replay!"
+    setTimeout(() => {
+      dropText.value = "drag and drop\nttrm files here"
+    }, 1000)
+  }
 }
 
 function preventDefaults(e: Event) {
@@ -52,6 +82,7 @@ onUnmounted(() => {
 
 <style lang="css" scoped>
 .dropZone {
+  white-space: pre;
   display: flex;
   justify-content: center;
   align-items: center;

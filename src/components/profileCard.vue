@@ -1,6 +1,8 @@
 <template>
-  <div @mouseenter.prevent="flip" @mouseleave.prevent="unflip" :class="['card-container', flipped ? 'flipped' : '']"
-    :style="{ width: `${300}px`, height: `${300}px` }">
+  <div :class="['card-container', flipped ? 'flipped' : '']" :style="{ width: `${300}px`, height: `${300}px` }">
+    <button class="flipButton fade-in" @click="flip" v-if="!flipping">
+      <FlipIcon />
+    </button>
     <div class="front">
       <slot name="front">
         <div class="card">
@@ -14,7 +16,8 @@
     <div class="back">
       <slot name="back">
         <div class="card backCard">
-          <div class="openStatsLink" style="position: absolute; top:20px; left: 20px; z-index: 3">Open Stats</div>
+          <button class="openStatsLink"
+            style="position: absolute; top:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open Stats</button>
           <CloseIcon class="icon" style="position: absolute; top:20px; right: 20px; z-index: 3;"
             @click="$emit('exit')" />
           <div class="recordContainer">
@@ -53,6 +56,7 @@ import { type RecordEntry } from "@/replay/types/leagueRecord";
 import ExitIcon from "./exitIcon.vue";
 import { defaultRainbow } from "@/theme/colors";
 import Identicon from "identicon.js"
+import FlipIcon from "./flipIcon.vue";
 import md5 from 'md5'
 
 const emit = defineEmits<{
@@ -111,23 +115,22 @@ function getRecordData(rec: RecordEntry) {
 
 }
 
-const checkedReplays = ref<string[]>([])
+const checkedReplays = ref<string[]>(props.records.map(x => x.replayid))
 
 const inActiveTimeout = ref(-1)
 
+const flipping = ref(false)
 const flipped = ref(false);
 const flip = () => {
-  flipped.value = true
+  flipped.value = !flipped.value
+  flipping.value = true
+  setTimeout(() => flipping.value = false, 200)
   clearTimeout(inActiveTimeout.value)
 };
-const unflip = () => {
-  inActiveTimeout.value = setTimeout(() => {
-    flipped.value = false
-  }, 100)
-};
-
 </script>
 <style lang="css" scoped>
+@import "@/assets/card.css";
+
 .checkContainer {
   color: var(--f_high);
   display: block;
@@ -195,8 +198,6 @@ const unflip = () => {
   transform: rotate(45deg);
 }
 
-
-
 .recordContainer {
   position: absolute;
   top: 50%;
@@ -204,7 +205,6 @@ const unflip = () => {
   transform: translate(-50%, -50%);
   width: 100%;
   height: 100%;
-
   font-size: 12px;
   color: var(--f_high);
 }
@@ -232,10 +232,7 @@ const unflip = () => {
   color: var(--f_med);
 }
 
-.recordList:hover {
-  overflow-y: scroll;
-}
-
+.recordList:hover,
 .recordList:active {
   overflow-y: scroll;
 }
@@ -247,6 +244,7 @@ const unflip = () => {
 }
 
 .check-box {
+  z-index: 5;
   flex: 1;
 }
 
@@ -263,43 +261,6 @@ const unflip = () => {
 .name-box {
   flex: 5;
   text-align: center;
-}
-
-.card-container {
-  margin: 0;
-  padding: 0;
-  position: relative;
-  box-sizing: border-box;
-}
-
-.card-container .front,
-.card-container .back {
-  box-sizing: border-box;
-  height: 100%;
-  width: 100%;
-  display: block;
-  position: absolute;
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-  transition: transform ease 500ms;
-}
-
-.card-container .front {
-  z-index: 2;
-  transform: rotateY(0deg);
-}
-
-.card-container .back {
-  transform: rotateY(-180deg);
-  font-size: 20px;
-}
-
-.card-container.flipped .front {
-  transform: rotateY(180deg);
-}
-
-.card-container.flipped .back {
-  transform: rotateY(0deg);
 }
 
 .icon {
@@ -328,20 +289,6 @@ const unflip = () => {
   stroke: var(--f_med);
 }
 
-.openStatsLink {
-  user-select: none;
-  color: var(--f_low);
-  transition: color 0.2s ease;
-}
-
-.openStatsLink:hover {
-  color: var(--f_high);
-}
-
-.openStatsLink:active {
-  color: var(--f_med);
-}
-
 .username {
   margin: auto;
   color: var(--f_high);
@@ -352,40 +299,5 @@ const unflip = () => {
   outline: none;
   text-align: center;
   user-select: none;
-}
-
-.profileImg {
-  width: 200px;
-  height: 200px;
-  border-radius: 20px;
-  border: 1px solid var(--b_high);
-  margin: 20px;
-  margin-top: 40px;
-}
-
-.userData {
-  color: var(--f_high);
-  background-color: var(--b_high);
-  width: 100%;
-  height: 100%;
-  border-bottom-left-radius: 15px;
-  border-bottom-right-radius: 15px;
-  display: flex;
-  flex-direction: column;
-}
-
-.card {
-  width: 300px;
-  height: 300px;
-  border: 4px solid var(--b_med);
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.backCard {
-  position: absolute;
 }
 </style>

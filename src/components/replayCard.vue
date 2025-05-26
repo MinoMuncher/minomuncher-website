@@ -1,18 +1,24 @@
 <template>
-  <div @mouseenter.prevent="flip" @mouseleave.prevent="unflip" :class="['card-container', flipped ? 'flipped' : '']"
-    :style="{ width: `${300}px`, height: `${300}px` }">
+  <div :class="['card-container', flipped ? 'flipped' : '']" :style="{ width: `${300}px`, height: `${300}px` }">
+    <button class="flipButton fade-in" @click="flip" v-if="!flipping">
+      <FlipIcon />
+    </button>
     <div class="front">
       <slot name="front">
         <div class="card">
           <div class="userData">
             <div class="fileName">replay.ttrm</div>
             <div class="fileUsers" v-bind:style="{ color: `${defaultRainbow.teal}`, textAlign: 'center' }">
-              <div v-for="(name, index) in props.usernames" :key="index">
-                <strong v-bind:style="{ color: defaultRainbow.green }" v-if="checkedNames.includes(name)">{{ name
+              <div v-for="(user, index) in props.users" :key="index">
+                <strong v-bind:style="{ color: defaultRainbow.green }" v-if="checkedNames.includes(user.username)">{{
+                  user.username
                 }}</strong>
-                <span v-else> {{ name }}</span>
-                <span class="punct" v-if="index < props.usernames.length - 2">,</span>
-                <span class="punct" v-else-if="index === props.usernames.length - 2">, and</span>
+                <span v-else> {{ user.username }}</span>
+                <span class="punct" v-if="index < props.users.length - 2">,</span>
+                <span style="white-space: nowrap; margin-left: 1ch;" class="punct"
+                  v-else-if="index === props.users.length - 2 && props.users.length === 2">and</span>
+                <span style="white-space: nowrap;" class="punct" v-else-if="index === props.users.length - 2">,
+                  and</span>
               </div>
             </div>
           </div>
@@ -22,11 +28,13 @@
     <div class="back">
       <slot name="back">
         <div class="card backCard">
-          <div class="openStatsLink" style="position: absolute; top:20px; left: 20px; z-index: 3">Open Stats</div>
+          <button class="openStatsLink"
+            style="position: absolute; bottom:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open
+            Stats</button>
           <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px" @click="$emit('exit')" />
           <div class="userList">
-            <label v-for="name of props.usernames" v-bind:key="name" class="checkContainer">{{ name }}
-              <input type="checkbox" v-bind:value="name" v-model="checkedNames">
+            <label v-for="user of props.users" v-bind:key="user.id" class="checkContainer">{{ user.username }}
+              <input type="checkbox" v-bind:value="user.username" v-model="checkedNames">
               <span class="checkmark"></span>
             </label>
           </div>
@@ -39,55 +47,30 @@
 import { ref } from "vue";
 import CloseIcon from "./closeIcon.vue";
 import { defaultRainbow } from "@/theme/colors";
-const props = defineProps({
-  replayName: { type: String, required: true },
-  error: { type: String },
-  usernames: { type: Array<string>, required: true }
-})
+import type { User } from "@/replay/types/leagueRecord";
+import FlipIcon from "./flipIcon.vue";
+const props = defineProps<{
+  replayName: string,
+  error?: string,
+  users: User[]
+}>()
 
 defineEmits<{
   (e: 'exit'): void
 }>()
-const checkedNames = ref<string[]>([])
+const checkedNames = ref<string[]>(props.users.map(x => x.username))
 const inActiveTimeout = ref(-1)
-
+const flipping = ref(false)
 const flipped = ref(false);
 const flip = () => {
-  flipped.value = true
+  flipped.value = !flipped.value
+  flipping.value = true
+  setTimeout(() => flipping.value = false, 200)
   clearTimeout(inActiveTimeout.value)
-};
-const unflip = () => {
-  inActiveTimeout.value = setTimeout(() => {
-    flipped.value = false
-  }, 100)
 };
 </script>
 <style lang="css" scoped>
-.openStatsLink {
-  user-select: none;
-  color: var(--f_low);
-  transition: color 0.2s ease;
-}
-
-.openStatsLink:hover {
-  color: var(--f_high);
-}
-
-.openStatsLink:active {
-  color: var(--f_med);
-}
-
-
-.fileUsers {
-  display: flex;
-  flex-direction: row;
-  width: 80%;
-  justify-content: center;
-}
-
-.fileUsers div .punct {
-  margin-right: 1ch;
-}
+@import "@/assets/card.css";
 
 
 .checkContainer {
@@ -159,6 +142,23 @@ const unflip = () => {
   transform: rotate(45deg);
 }
 
+.userData {
+  align-items: center;
+  justify-content: center;
+
+}
+
+.fileUsers {
+  display: flex;
+  flex-direction: row;
+  width: 80%;
+  justify-content: center;
+}
+
+.fileUsers div .punct {
+  margin-right: 1ch;
+}
+
 .userList {
   display: flex;
   flex-direction: column;
@@ -184,49 +184,6 @@ const unflip = () => {
   background: transparent;
   max-width: 200px;
   outline: none;
-}
-
-
-.card-container {
-  margin: 0;
-  padding: 0;
-  position: relative;
-  box-sizing: border-box;
-
-  .front,
-  .back {
-    box-sizing: border-box;
-    height: 100%;
-    width: 100%;
-    display: block;
-    position: absolute;
-    backface-visibility: hidden;
-    transform-style: preserve-3d;
-    transition: -webkit-transform ease 500ms;
-    transition: transform ease 500ms;
-  }
-
-  .front {
-    z-index: 2;
-    transform: rotateY(0deg);
-    /* front tile styles go here! */
-  }
-
-  .back {
-    transform: rotateY(-180deg);
-    font-size: 20px;
-    /* back tile styles go here! */
-  }
-
-  &.flipped {
-    .front {
-      transform: rotateY(180deg);
-    }
-
-    .back {
-      transform: rotateY(0deg);
-    }
-  }
 }
 
 .profileActionContainer {
@@ -269,7 +226,6 @@ const unflip = () => {
   fill: var(--f_high);
 }
 
-
 .lastUpdated {
   margin-left: 20px;
   font-size: small;
@@ -290,63 +246,5 @@ const unflip = () => {
   max-height: 40px;
   outline: none;
   text-align: center;
-}
-
-.profileImg {
-  width: 200px;
-  height: 200px;
-  border-radius: 20px;
-  border: 1px solid var(--b_high);
-  margin: 20px;
-  margin-top: 40px;
-}
-
-.croppedImgContainer {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 200px;
-  height: 200px;
-  border-radius: 20px;
-  border: 1px solid var(--b_high);
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  transition: transform 0.2s ease
-}
-
-.croppedImgContainer:hover {
-  transform: translate(-50%, -50%) scale(0.9);
-}
-
-.userData {
-  color: var(--f_high);
-  width: 100%;
-  height: 100%;
-  border-bottom-left-radius: 15px;
-  border-bottom-right-radius: 15px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-}
-
-.card {
-  width: 300px;
-  height: 300px;
-  border: 4px solid var(--b_med);
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.backCard {
-  position: absolute;
 }
 </style>

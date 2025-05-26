@@ -6,9 +6,14 @@ import FileUpload from '@/components/fileUpload.vue';
 import type { ProfileData } from '@/replay/types/profile';
 import { ref } from 'vue';
 import ProfileCard from '@/components/profileCard.vue';
+import type { ReplayDropData } from '@/replay/types/replayDrop';
+import ReplayCard from '@/components/replayCard.vue';
 
-const cardData = ref<ProfileData[]>([])
+const cardData = ref<(ProfileData | ReplayDropData)[]>([])
 
+function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData {
+  return (card as ProfileData).username !== undefined;
+}
 
 </script>
 
@@ -26,7 +31,9 @@ const cardData = ref<ProfileData[]>([])
           </nav>
         </div>
       </header>
-      <FileUpload />
+      <FileUpload @fileUpload="(files) => {
+        cardData = [...files, ...cardData]
+      }" />
     </div>
 
     <div style="display: flex; flex-direction: column;">
@@ -36,13 +43,19 @@ const cardData = ref<ProfileData[]>([])
         }" />
       </div>
       <TransitionGroup class="cardContainer" tag="div" name="list">
-        <ProfileCard v-for="card of cardData" v-show="card.avatarLoaded" :key="card.userId" :username="card.username"
-          :avatar="card.avatar" :records="card.response.data!.entries" :id="card.userId" @profileLoad="() => {
-            card.avatarLoaded = true
-          }" @exit="() => {
-            console.log('heyyy')
-            cardData = cardData.filter(x => x.userId != card.userId)
+        <template v-for="card of cardData">
+          <ProfileCard v-if="isProfileData(card)" v-show="card.avatarLoaded" :key="card.userId"
+            :username="card.username" :avatar="card.avatar" :records="card.response.data!.entries" :id="card.userId"
+            @profileLoad="() => {
+              card.avatarLoaded = true
+            }" @exit="() => {
+              cardData = cardData.filter(x => isProfileData(x) && x.userId != card.userId)
+            }" />
+          <ReplayCard v-else :replayName="card.fileName" :users="card.users" v-bind:key="card.dataHash" @exit="() => {
+            cardData = cardData.filter(x => !isProfileData(x) && x.dataHash != card.dataHash)
           }" />
+        </template>
+
       </TransitionGroup>
     </div>
 
