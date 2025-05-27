@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "d3": "^7.9.0",
+    "gaussian-mixture": "^0.9.1",
     "identicon.js": "^2.3.3",
     "md5": "^2.3.0",
     "pinia": "^3.0.1",

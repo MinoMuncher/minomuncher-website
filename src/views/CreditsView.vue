@@ -2,7 +2,7 @@
 </script>
 
 <template>
-    <main>
-        credits page
-    </main>
+  <main>
+    credits page
+  </main>
 </template>

@@ -4,23 +4,137 @@ import Logo from '@/components/logoIcon.vue';;
 import PlayerSearch from '@/components/playerSearch.vue';
 import FileUpload from '@/components/fileUpload.vue';
 import type { ProfileData } from '@/replay/types/profile';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import ProfileCard from '@/components/profileCard.vue';
 import type { ReplayDropData } from '@/replay/types/replayDrop';
 import ReplayCard from '@/components/replayCard.vue';
 import InfoCard from '@/components/infoCard.vue';
-import type { GameStats } from '@/replay/types/stats';
+import { combineStats, type GameStats, type Players } from '@/replay/types/stats';
+import { useStatStore } from '@/stores/statFetch';
+import { calculateCumulativeStats } from '@/replay/statLogic';
+import { useVisualize } from '@/stores/visualize';
+import router from '@/router';
+import { useUsernameStore } from '@/stores/username';
+import type { LeagueResponse } from '@/replay/types/leagueRecord';
 
 const cardData = ref<(ProfileData | ReplayDropData)[]>([])
-const cardDataHousing = { data: cardData }
 
-const replayStats = ref<{ [key: string]: GameStats }>({})
-const fileStats = ref<{ [key: string]: GameStats }>({})
+const { replayStatus, fileStatus } = useStatStore()
+const { setVisualize } = useVisualize()
+const { username } = useUsernameStore()
+
+onMounted(async () => {
+  if (username.length == 0) return
+
+  const resp = await fetch(`/api/user/${username.toLowerCase()}`)
+  const txt = await resp.text()
+  const js = JSON.parse(txt)
+  const id = js["data"]["_id"]
+  const avatarRev: number | undefined = js["data"]['avatar_revision']
+  let userId: string | undefined
+
+  if (typeof id === "string") {
+    if (id.length > 0) {
+      userId = id
+    }
+  }
+  if (userId == undefined) {
+    throw Error("no user id found")
+  }
+  try {
+    const response = await fetch(`/api/league/${userId}`);
+    const json: LeagueResponse = await response.json();
+
+    if (json.error === undefined && json.success && json.data && json.data.entries.length != 0) {
+      cardData.value.push(
+        { checkedReplays: json.data.entries.map(x => x.replayid), response: json, userId, username: username, avatar: avatarRev ? `https://tetr.io/user-content/avatars/${userId}.jpg?rv=${avatarRev}` : undefined, avatarLoaded: false }
+      )
+    }
+  } catch (error) {
+    console.error(error);
+  }
+})
 
 function calculateVisualize() {
   const newStats: { [key: string]: GameStats } = {}
+  for (const data of cardData.value) {
+    if (isProfileData(data)) {
+      for (const rep of data.response.data!.entries) {
+        let found = false
+        for (const r of data.checkedReplays) {
+          if (r == rep.replayid) {
+            found = true
+            break;
+          }
+        }
+        if (!found) {
+          continue
+        }
+        const status = replayStatus(rep.replayid)
+        console.log(status)
+        if (typeof status == "object") {
+          for (const key in status) {
+            if (key.toLowerCase() != data.username) {
+              continue
+            }
+            if (key.toLowerCase() in newStats) {
+              combineStats(newStats[key.toLowerCase()], status[key])
+            } else {
+              newStats[key.toLowerCase()] = status[key]
+            }
+          }
+        }
+      }
+    } else {
+      const status = fileStatus(data.dataHash)
+      console.log(status, data.checkedUsers)
+      if (typeof status == "object") {
+        for (const key in status) {
+          let found = false
+          for (const r of data.checkedUsers) {
+            if (r.toLowerCase() == key.toLowerCase()) {
+              found = true
+              break;
+            }
+          }
+          if (!found) {
+            continue
+          }
+          if (key.toLowerCase() in newStats) {
+            combineStats(newStats[key.toLowerCase()], status[key])
+          } else {
+            newStats[key.toLowerCase()] = status[key]
+          }
+        }
+      }
+    }
+  }
+  const cumulativeStats: Players = {}
+  for (const key in newStats) {
+    cumulativeStats[key] = calculateCumulativeStats(newStats[key])
+  }
+  setVisualize(cumulativeStats)
+  if (Object.keys(cumulativeStats).length == 0) return
+  router.push("/stats")
 }
 
+function updateCheckedUsers(dataHash: string, checkedUsers: string[]) {
+  for (const x of cardData.value) {
+    if (!isProfileData(x) && x.dataHash == dataHash) {
+      x.checkedUsers = checkedUsers
+      break
+    }
+  }
+}
+
+function updateCheckedReplays(userId: string, checkedReplays: string[]) {
+  for (const x of cardData.value) {
+    if (isProfileData(x) && x.userId == userId) {
+      x.checkedReplays = checkedReplays
+      break
+    }
+  }
+}
 
 function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData {
   return (card as ProfileData).username !== undefined;
@@ -42,14 +156,15 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
           </nav>
         </div>
       </header>
-      <FileUpload :cards="cardDataHousing.data" @fileUpload="(files) => {
+      <FileUpload :cards="cardData" @fileUpload="(files) => {
         cardData = [...files, ...cardData]
       }" />
+      <button @click="calculateVisualize()"> go to stats</button>
     </div>
 
     <div style="display: flex; flex-direction: column;">
       <div>
-        <PlayerSearch :cards="cardDataHousing.data" @response="(resp) => {
+        <PlayerSearch :cards="cardData" @response="(resp) => {
           cardData.unshift(resp)
         }" />
       </div>
@@ -61,10 +176,12 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
               card.avatarLoaded = true
             }" @exit="() => {
               cardData = cardData.filter(x => isProfileData(x) && x.userId != card.userId)
+            }" @checked-replays="(y) => {
+              updateCheckedReplays(card.userId, y)
             }" />
           <ReplayCard v-else :key="card.dataHash" :data="card" @exit="() => {
             cardData = cardData.filter(x => !isProfileData(x) && x.dataHash != card.dataHash)
-          }" />
+          }" @checked-names="(y) => updateCheckedUsers(card.dataHash, y)" />
         </template>
 
       </TransitionGroup>
@@ -75,6 +192,24 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
 </template>
 
 <style scoped>
+button {
+  background: none;
+  color: inherit;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  outline: inherit;
+  color: var(--f_low);
+}
+
+button:hover {
+  color: var(--f_high);
+}
+
+button:active {
+  color: var(--f_med);
+}
+
 .list-move,
 /* apply transition to moving elements */
 .list-enter-active,
@@ -114,7 +249,7 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
   padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 340px;
+  gap: 40px;
   mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
 }
 

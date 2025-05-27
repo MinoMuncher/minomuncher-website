@@ -9,10 +9,10 @@
 import type { LeagueResponse } from '@/replay/types/leagueRecord';
 import type { ProfileData } from '@/replay/types/profile';
 import type { ReplayDropData } from '@/replay/types/replayDrop';
-import { ref, type Ref } from 'vue';
+import { ref } from 'vue';
 
 const props = defineProps<{
-  cards: Ref<(ProfileData | ReplayDropData)[]>
+  cards: (ProfileData | ReplayDropData)[]
 }>()
 
 const emit = defineEmits<{
@@ -25,7 +25,7 @@ function onUsernameExit() {
   usernameInput.value = submittingUsername.value
 }
 async function onUsernameSubmit() {
-  if (props.cards.value.some(x => 'username' in x && x.username === usernameInput.value)) {
+  if (props.cards.some(x => 'username' in x && x.username === usernameInput.value)) {
     usernamePlaceholder.value = 'duplicate username';
     usernameInput.value = ''
     submittingUsername.value = '';
@@ -60,9 +60,12 @@ async function onUsernameSubmit() {
         usernamePlaceholder.value = String(json.error);
       } else if (!json.success) {
         usernamePlaceholder.value = 'Query Unsuccessful';
-      } else {
+      } else if (!json.data || json.data.entries.length == 0) {
+        usernamePlaceholder.value = 'No downloadable replays!';
+      }
+      else {
         usernamePlaceholder.value = 'add league name...';
-        emit('response', { response: json, userId, username: submittingUsername.value, avatar: avatarRev ? `https://tetr.io/user-content/avatars/${userId}.jpg?rv=${avatarRev}` : undefined, avatarLoaded: false });
+        emit('response', { checkedReplays: json.data.entries.map(x => x.replayid), response: json, userId, username: submittingUsername.value, avatar: avatarRev ? `https://tetr.io/user-content/avatars/${userId}.jpg?rv=${avatarRev}` : undefined, avatarLoaded: false });
       }
     } catch (error) {
       usernamePlaceholder.value = 'Network or server error';

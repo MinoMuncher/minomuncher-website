@@ -34,13 +34,14 @@
           <button class="flipButton fade-in" @click="flip">
             <FlipIcon />
           </button>
-          <button class="openStatsLink"
+          <button class="openStatsLink" @click="calculateVisualize()"
             style="position: absolute; bottom:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open
             Stats</button>
           <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px" @click="$emit('exit')" />
           <div class="userList">
             <label v-for="user of props.data.users" v-bind:key="user.id" class="checkContainer">{{ user.username }}
-              <input type="checkbox" v-bind:value="user.username" v-model="checkedNames">
+              <input type="checkbox" @change="$emit('checkedNames', checkedNames)" v-bind:value="user.username"
+                v-model="checkedNames">
               <span class="checkmark"></span>
             </label>
           </div>
@@ -55,13 +56,16 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import CloseIcon from "./closeIcon.vue";
 import { defaultRainbow } from "@/theme/colors";
 import FlipIcon from "./flipIcon.vue";
 import { useStatStore } from "@/stores/statFetch";
 import type { ReplayDropData } from "@/replay/types/replayDrop";
-import type { GameStats } from "@/replay/types/stats";
+import { combineStats, type GameStats, type Players } from "@/replay/types/stats";
+import { calculateCumulativeStats } from "@/replay/statLogic";
+import { useVisualize } from "@/stores/visualize";
+import router from "@/router";
 const props = defineProps<{
   data: ReplayDropData,
 }>()
@@ -86,19 +90,48 @@ const queryStatus = computed(() => {
   return getStatusMessage(fileStatus(props.data.dataHash))
 })
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'exit'): void,
-  (e: 'checkedNamed', value: string[]): void
+  (e: 'checkedNames', value: string[]): void
 }>()
-const checkedNames = ref<string[]>(props.data.users.map(x => x.username))
 const flipped = ref(false);
 const flip = () => {
   flipped.value = !flipped.value
 };
+const checkedNames = ref(props.data.checkedUsers)
 
-watch(checkedNames, () => {
-  emit("checkedNamed", checkedNames.value)
-})
+const { setVisualize } = useVisualize()
+
+function calculateVisualize() {
+  const newStats: { [key: string]: GameStats } = {}
+  const status = fileStatus(props.data.dataHash)
+  if (typeof status == "object") {
+    for (const key in status) {
+      let found = false
+      for (const r of props.data.checkedUsers) {
+        if (r.toLowerCase() == key.toLowerCase()) {
+          found = true
+          break;
+        }
+      }
+      if (!found) {
+        continue
+      }
+      if (key.toLowerCase() in newStats) {
+        combineStats(newStats[key.toLowerCase()], status[key])
+      } else {
+        newStats[key.toLowerCase()] = status[key]
+      }
+    }
+    const cumulativeStats: Players = {}
+    for (const key in newStats) {
+      cumulativeStats[key] = calculateCumulativeStats(newStats[key])
+    }
+    setVisualize(cumulativeStats)
+    if (Object.keys(cumulativeStats).length == 0) return
+    router.push("/stats")
+  }
+}
 
 </script>
 <style lang="css" scoped>

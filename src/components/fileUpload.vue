@@ -9,14 +9,15 @@
 </template>
 
 <script setup lang="ts">
+import type { User } from '@/replay/types/leagueRecord';
 import type { ProfileData } from '@/replay/types/profile';
 import type { ReplayDropData } from '@/replay/types/replayDrop';
 import md5 from 'md5';
-import { onMounted, onUnmounted, ref, type Ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 
 const props = defineProps<{
-  cards: Ref<(ProfileData | ReplayDropData)[]>
+  cards: (ProfileData | ReplayDropData)[]
 }>()
 
 
@@ -32,14 +33,18 @@ async function handleFiles(files: FileList) {
       const rawData = JSON.parse(rawText)
       const dataHash = md5(rawText)
 
-      if (props.cards.value.some(x => 'dataHash' in x && x.dataHash === dataHash)) {
+      if (props.cards.some(x => 'dataHash' in x && x.dataHash === dataHash)) {
         continue
       }
 
+
       if ('users' in rawData && Array.isArray(rawData['users'])) {
+        const checked = rawData['users'].map(x => (x as User).username)
+        if (checked.length == 0) continue
         okayFiles.push({
           fileName: file.name,
           users: rawData['users'],
+          checkedUsers: checked,
           data: rawText,
           dataHash,
         })

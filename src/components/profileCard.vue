@@ -23,7 +23,7 @@
           <button class="flipButton fade-in" @click="flip">
             <FlipIcon />
           </button>
-          <button class="openStatsLink"
+          <button class="openStatsLink" @click="openStats"
             style="position: absolute; top:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open Stats</button>
           <CloseIcon class="icon" style="position: absolute; top:20px; right: 20px; z-index: 3;"
             @click="$emit('exit')" />
@@ -40,7 +40,8 @@
                 </div>
                 <div class="check-box">
                   <label class="checkContainer">
-                    <input type="checkbox" v-bind:value="rec.replayId" v-model="checkedReplays">
+                    <input @change="$emit('checkedReplays', checkedReplays)" type="checkbox" v-bind:value="rec.replayId"
+                      v-model="checkedReplays">
                     <span class="checkmark"></span>
                   </label>
                 </div>
@@ -60,7 +61,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import CloseIcon from "./closeIcon.vue";
 import { type RecordEntry } from "@/replay/types/leagueRecord";
 import ExitIcon from "./exitIcon.vue";
@@ -70,7 +71,10 @@ import FlipIcon from "./flipIcon.vue";
 import md5 from 'md5'
 import { useStatStore } from "@/stores/statFetch";
 import type { ProfileData } from "@/replay/types/profile";
-import type { GameStats } from "@/replay/types/stats";
+import { combineStats, type GameStats, type Players } from "@/replay/types/stats";
+import { calculateCumulativeStats } from "@/replay/statLogic";
+import { useVisualize } from "@/stores/visualize";
+import router from "@/router";
 
 const emit = defineEmits<{
   (e: 'exit'): void,
@@ -81,6 +85,7 @@ const props = defineProps<{
   data: ProfileData
 }>()
 
+const checkedReplays = ref(props.data.checkedReplays)
 
 
 const statStore = useStatStore()
@@ -88,9 +93,7 @@ const { newReplay, replayStatus } = statStore
 onMounted(() => {
   for (const entry of props.data.response.data!.entries) {
     newReplay(props.data.username, entry.replayid)
-    break
   }
-
 })
 
 function getStatusMessage(t: {
@@ -104,9 +107,10 @@ function getStatusMessage(t: {
   }
 }
 const queryStatus = computed(() => {
-  const total = props.data.response.data!.entries.length
+  let total = 0
   let okayed = 0
-  for (const entry of props.data.response.data!.entries) {
+  for (const entry of props.data.response.data!.entries.filter(x => !x.stub)) {
+    total += 1
     const resp = getStatusMessage(replayStatus(entry.replayid))
     if (resp != 'pending' && resp != 'unloaded') {
       okayed += 1
@@ -160,15 +164,49 @@ function getRecordData(rec: RecordEntry) {
 
 }
 
-const checkedReplays = ref<string[]>(props.data.response.data!.entries.map(x => x.replayid))
 const flipped = ref(false);
 const flip = () => {
   flipped.value = !flipped.value
 };
 
-watch(checkedReplays, () => {
-  emit("checkedReplays", checkedReplays.value)
-})
+const { setVisualize } = useVisualize()
+
+function openStats() {
+  const newStats: { [key: string]: GameStats } = {}
+  for (const rep of props.data.response.data!.entries) {
+    let found = false
+    for (const r of props.data.checkedReplays) {
+      if (r == rep.replayid) {
+        found = true
+        break;
+      }
+    }
+    if (!found) {
+      continue
+    }
+    const status = replayStatus(rep.replayid)
+    if (typeof status == "object") {
+      for (const key in status) {
+        if (key.toLowerCase() != props.data.username) {
+          continue
+        }
+        if (key.toLowerCase() in newStats) {
+          combineStats(newStats[key.toLowerCase()], status[key])
+        } else {
+          newStats[key.toLowerCase()] = status[key]
+        }
+      }
+    }
+  }
+  const cumulativeStats: Players = {}
+  for (const key in newStats) {
+    cumulativeStats[key] = calculateCumulativeStats(newStats[key])
+  }
+  setVisualize(cumulativeStats)
+  if (Object.keys(cumulativeStats).length == 0) return
+  router.push("/stats")
+}
+
 </script>
 <style lang="css" scoped>
 @import "@/assets/card.css";

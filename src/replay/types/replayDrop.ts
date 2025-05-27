@@ -5,4 +5,5 @@ export type ReplayDropData = {
   users: User[],
   data: string,
   dataHash: string,
+  checkedUsers: string[],
 }
