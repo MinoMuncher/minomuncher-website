@@ -1,11 +1,17 @@
 <template>
-  <div class="dropZone" :data-active="active" @dragenter.prevent="setActive" @dragover.prevent="setActive"
-    @dragleave.prevent="setInactive" @drop.prevent="onDrop" :class="{ 'dropActive': active }">
-    <p>drag or </p>
-    <label for="files"><strong>select</strong></label>
-    <input @change="fileInputChange()" id="files" type="file" ref="fileInput" name="files" multiple>
-    <p> ttrm</p>
+  <div>
+    <p style="position: relative; height: 0px; margin: 0px; left: 12px; top:12px; color: var(--rainbow_red)"
+      v-text="errorMessage">
+    </p>
+    <div class="dropZone" :data-active="active" @dragenter.prevent="setActive" @dragover.prevent="setActive"
+      @dragleave.prevent="setInactive" @drop.prevent="onDrop" :class="{ 'dropActive': active }">
+      <p>drag or </p>
+      <label for="files"><strong>select</strong></label>
+      <input @change="fileInputChange()" id="files" type="file" ref="fileInput" name="files" multiple>
+      <p> ttrm</p>
+    </div>
   </div>
+
 </template>
 
 <script setup lang="ts">
@@ -15,6 +21,7 @@ import type { ReplayDropData } from '@/replay/types/replayDrop';
 import md5 from 'md5';
 import { onMounted, onUnmounted, ref } from 'vue'
 
+const errorMessage = ref("")
 
 const props = defineProps<{
   cards: (ProfileData | ReplayDropData)[]
@@ -34,13 +41,17 @@ async function handleFiles(files: FileList) {
       const dataHash = md5(rawText)
 
       if (props.cards.some(x => 'dataHash' in x && x.dataHash === dataHash)) {
+        errorMessage.value = "duplicate"
+        setTimeout(() => errorMessage.value = '', 2000)
         continue
       }
-
-
       if ('users' in rawData && Array.isArray(rawData['users'])) {
         const checked = rawData['users'].map(x => (x as User).username)
-        if (checked.length == 0) continue
+        if (checked.length == 0) {
+          errorMessage.value = "no users"
+          setTimeout(() => errorMessage.value = '', 2000)
+          continue
+        }
         okayFiles.push({
           fileName: file.name,
           users: rawData['users'],
@@ -50,6 +61,9 @@ async function handleFiles(files: FileList) {
         })
       }
     } catch (e) {
+      errorMessage.value = "invalid"
+      setTimeout(() => errorMessage.value = '', 2000)
+
       console.error(e)
     }
 

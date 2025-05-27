@@ -60,7 +60,7 @@ async function onUsernameSubmit() {
         usernamePlaceholder.value = String(json.error);
       } else if (!json.success) {
         usernamePlaceholder.value = 'Query Unsuccessful';
-      } else if (!json.data || json.data.entries.length == 0) {
+      } else if (!json.data || json.data.entries.filter(x => !x.stub).length == 0) {
         usernamePlaceholder.value = 'No downloadable replays!';
       }
       else {

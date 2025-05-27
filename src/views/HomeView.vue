@@ -4,7 +4,7 @@ import Logo from '@/components/logoIcon.vue';;
 import PlayerSearch from '@/components/playerSearch.vue';
 import FileUpload from '@/components/fileUpload.vue';
 import type { ProfileData } from '@/replay/types/profile';
-import { onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 import ProfileCard from '@/components/profileCard.vue';
 import type { ReplayDropData } from '@/replay/types/replayDrop';
 import ReplayCard from '@/components/replayCard.vue';
@@ -16,8 +16,10 @@ import { useVisualize } from '@/stores/visualize';
 import router from '@/router';
 import { useUsernameStore } from '@/stores/username';
 import type { LeagueResponse } from '@/replay/types/leagueRecord';
+import { useCardData } from '@/stores/cardData';
+import { storeToRefs } from 'pinia';
 
-const cardData = ref<(ProfileData | ReplayDropData)[]>([])
+const { cardData } = storeToRefs(useCardData())
 
 const { replayStatus, fileStatus } = useStatStore()
 const { setVisualize } = useVisualize()
@@ -25,6 +27,11 @@ const { username } = useUsernameStore()
 
 onMounted(async () => {
   if (username.length == 0) return
+
+  if (cardData.value.some(x => 'username' in x && x.username === username)) {
+    return
+  }
+
 
   const resp = await fetch(`/api/user/${username.toLowerCase()}`)
   const txt = await resp.text()
@@ -71,7 +78,6 @@ function calculateVisualize() {
           continue
         }
         const status = replayStatus(rep.replayid)
-        console.log(status)
         if (typeof status == "object") {
           for (const key in status) {
             if (key.toLowerCase() != data.username) {
@@ -87,7 +93,6 @@ function calculateVisualize() {
       }
     } else {
       const status = fileStatus(data.dataHash)
-      console.log(status, data.checkedUsers)
       if (typeof status == "object") {
         for (const key in status) {
           let found = false
@@ -159,7 +164,12 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
       <FileUpload :cards="cardData" @fileUpload="(files) => {
         cardData = [...files, ...cardData]
       }" />
-      <button @click="calculateVisualize()"> go to stats</button>
+      <div style="min-height: 50px;">
+        <button style="border-right: 1px solid var(--f_low);" @click="calculateVisualize()"
+          v-if="cardData.length > 0">render stats</button>
+        <button @click="cardData = []" v-if="cardData.length > 0"> clear all</button>
+      </div>
+
     </div>
 
     <div style="display: flex; flex-direction: column;">

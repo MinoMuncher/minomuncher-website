@@ -87,4 +87,6 @@ export const useStatStore = defineStore('statFetches', () => {
 
   return { statFetches, newReplay, newFile, fileStatus, replayStatus }
 
+}, {
+  persist: true
 })

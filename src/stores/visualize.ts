@@ -9,4 +9,4 @@ export const useVisualize = defineStore('visualize', () => {
     visualize.value = newVis
   }
   return { visualize, setVisualize }
-}, { persist: true })
+})
