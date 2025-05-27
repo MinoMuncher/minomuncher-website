@@ -1,4 +1,4 @@
-:root{
+:root {
   --background: #222222;
   --f_high: #ffffff;
   --f_med: #affec7;
@@ -8,13 +8,25 @@
   --b_med: #333333;
   --b_low: #111111;
   --b_inv: #affec7;
+
+  --rainbow_pink: #f8c8dc;
+  --rainbow_red: #dc8580;
+  --rainbow_yellow: #f2e6b1;
+  --rainbow_orange: #e7b699;
+  --rainbow_blue: #83b2d0;
+  --rainbow_purple: #8686ce;
+  --rainbow_violet: #885acc;
+  --rainbow_green: #95dab6;
+  --rainbow_teal: #8cada7;
 }
 
-body{
+body {
   background-color: var(--background);
 }
 
-html, body, #app{
+html,
+body,
+#app {
   height: 100%;
   padding: 0;
   margin: 0;

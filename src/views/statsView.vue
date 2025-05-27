@@ -15,9 +15,9 @@
     </div>
     <div id="right-zone">
       <TransitionGroup name="list">
-        <GraphWrapper class="graphWrapper" :data="demoStats" v-if="selectedGraph != undefined"
+        <GraphWrapper class="graphWrapper" :data="useVisualize().visualize" v-if="selectedGraph != undefined"
           v-bind:type="selectedGraph"></GraphWrapper>
-        <GraphWrapper class="graphWrapper" :data="demoStats" v-else-if="altSelectedGraph != undefined"
+        <GraphWrapper class="graphWrapper" :data="useVisualize().visualize" v-else-if="altSelectedGraph != undefined"
           v-bind:type="altSelectedGraph">
         </GraphWrapper>
       </TransitionGroup>
@@ -28,10 +28,9 @@
 import router from '@/router';
 import { ref } from 'vue';
 import { OrderedGraphTypes, type GraphType } from '@/graphs/types';
-
-import { demoStats } from '@/replay/demo';
 import GraphWrapper from '@/components/graphWrapper.vue';
 import { defaultRainbow } from '@/theme/colors';
+import { useVisualize } from '@/stores/visualize';
 
 const selectedGraph = ref<GraphType | undefined>("clear types")
 const altSelectedGraph = ref<GraphType | undefined>(undefined)

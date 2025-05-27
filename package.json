@@ -17,6 +17,7 @@
     "identicon.js": "^2.3.3",
     "md5": "^2.3.0",
     "pinia": "^3.0.1",
+    "pinia-plugin-persistedstate": "^4.3.0",
     "vue": "^3.5.13",
     "vue-flip": "^1.0.2",
     "vue-router": "^4.5.0"

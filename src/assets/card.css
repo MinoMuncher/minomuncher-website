@@ -126,3 +126,21 @@
 .flipButton * {
   fill: var(--f_high);
 }
+
+.queryStatus {
+  color: var(--f_high);
+  margin-top: 310px;
+  margin-left: 10px;
+}
+
+.status-pending {
+  color: var(--rainbow_orange);
+}
+
+.status-failed {
+  color: var(--rainbow_red);
+}
+
+.status-completed {
+  color: var(--rainbow_green);
+}

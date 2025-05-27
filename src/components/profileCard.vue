@@ -1,14 +1,18 @@
 <template>
   <div :class="['card-container', flipped ? 'flipped' : '']" :style="{ width: `${300}px`, height: `${300}px` }">
-    <button class="flipButton fade-in" @click="flip" v-if="!flipping">
-      <FlipIcon />
-    </button>
     <div class="front">
       <slot name="front">
         <div class="card">
-          <img class="profileImg" v-bind:src="avatar ? avatar : loadRandomImage(props.id)" @load="$emit('profileLoad')">
+          <button class="flipButton fade-in" @click="flip">
+            <FlipIcon />
+          </button>
+          <CloseIcon class="icon" style="position: absolute; top:20px; right: 20px; z-index: 3;"
+            @click="$emit('exit')" />
+          <img class="profileImg"
+            v-bind:src="props.data.avatar ? props.data.avatar : loadRandomImage(props.data.userId)"
+            @load="$emit('profileLoad')">
           <div class="userData">
-            <div class="username">{{ props.username }}</div>
+            <div class="username">{{ props.data.username }}</div>
           </div>
         </div>
       </slot>
@@ -16,6 +20,9 @@
     <div class="back">
       <slot name="back">
         <div class="card backCard">
+          <button class="flipButton fade-in" @click="flip">
+            <FlipIcon />
+          </button>
           <button class="openStatsLink"
             style="position: absolute; top:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open Stats</button>
           <CloseIcon class="icon" style="position: absolute; top:20px; right: 20px; z-index: 3;"
@@ -23,9 +30,9 @@
           <div class="recordContainer">
             <ul class="recordList">
               <li style="height: 10px;">
-
               </li>
-              <li v-for="rec of records.filter(x => !x.stub).map(getRecordData)" v-bind:key="rec.replayId">
+              <li v-for="rec of props.data.response.data!.entries.filter(x => !x.stub).map(getRecordData)"
+                v-bind:key="rec.replayId">
                 <div class="link-box">
                   <a v-bind:href="`https://tetr.io/#R:${rec.replayId}`" target="_blank">
                     <ExitIcon class="iconStroke"></ExitIcon>
@@ -42,15 +49,18 @@
                   v-text="rec.oppName"></a>
               </li>
             </ul>
-
           </div>
         </div>
       </slot>
     </div>
+    <div class="queryStatus" v-text="`${queryStatus[0]}/${queryStatus[1]}`" :class="{
+      'status-pending': queryStatus[0] < queryStatus[1],
+      'status-completed': queryStatus[0] == queryStatus[1],
+    }"></div>
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import CloseIcon from "./closeIcon.vue";
 import { type RecordEntry } from "@/replay/types/leagueRecord";
 import ExitIcon from "./exitIcon.vue";
@@ -58,18 +68,53 @@ import { defaultRainbow } from "@/theme/colors";
 import Identicon from "identicon.js"
 import FlipIcon from "./flipIcon.vue";
 import md5 from 'md5'
+import { useStatStore } from "@/stores/statFetch";
+import type { ProfileData } from "@/replay/types/profile";
+import type { GameStats } from "@/replay/types/stats";
 
 const emit = defineEmits<{
   (e: 'exit'): void,
-  (e: 'profileLoad'): void
+  (e: 'profileLoad'): void,
+  (e: 'checkedReplays', value: string[]): void,
 }>()
 const props = defineProps<{
-  username: string,
-  avatar?: string,
-  id: string,
-  error?: string,
-  records: RecordEntry[]
+  data: ProfileData
 }>()
+
+
+
+const statStore = useStatStore()
+const { newReplay, replayStatus } = statStore
+onMounted(() => {
+  for (const entry of props.data.response.data!.entries) {
+    newReplay(props.data.username, entry.replayid)
+    break
+  }
+
+})
+
+function getStatusMessage(t: {
+  [key: string]: GameStats;
+} | "pending" | "failed" | 'unloaded') {
+  const status = t
+  if (status == 'failed' || status == 'pending' || status == 'unloaded') {
+    return status
+  } else {
+    return 'completed'
+  }
+}
+const queryStatus = computed(() => {
+  const total = props.data.response.data!.entries.length
+  let okayed = 0
+  for (const entry of props.data.response.data!.entries) {
+    const resp = getStatusMessage(replayStatus(entry.replayid))
+    if (resp != 'pending' && resp != 'unloaded') {
+      okayed += 1
+    }
+  }
+  return [okayed, total]
+})
+
 
 function loadRandomImage(id: string) {
   const identity = new Identicon(md5(id), {
@@ -89,7 +134,7 @@ function getRecordData(rec: RecordEntry) {
   let oppScore = NaN
   let oppName = '?'
   for (const lb of rec.results.leaderboard) {
-    if (lb.id == props.id) {
+    if (lb.id == props.data.userId) {
       homeScore = lb.wins
     } else {
       oppName = lb.username
@@ -115,14 +160,15 @@ function getRecordData(rec: RecordEntry) {
 
 }
 
-const checkedReplays = ref<string[]>(props.records.map(x => x.replayid))
-const flipping = ref(false)
+const checkedReplays = ref<string[]>(props.data.response.data!.entries.map(x => x.replayid))
 const flipped = ref(false);
 const flip = () => {
   flipped.value = !flipped.value
-  flipping.value = true
-  setTimeout(() => flipping.value = false, 200)
 };
+
+watch(checkedReplays, () => {
+  emit("checkedReplays", checkedReplays.value)
+})
 </script>
 <style lang="css" scoped>
 @import "@/assets/card.css";

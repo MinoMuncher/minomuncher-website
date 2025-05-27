@@ -1,23 +1,26 @@
 <template>
   <div :class="['card-container', flipped ? 'flipped' : '']" :style="{ width: `${300}px`, height: `${300}px` }">
-    <button class="flipButton fade-in" @click="flip" v-if="!flipping">
-      <FlipIcon />
-    </button>
     <div class="front">
       <slot name="front">
         <div class="card">
+          <button class="flipButton fade-in" @click="flip">
+            <FlipIcon />
+          </button>
+          <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px; z-index: 3;"
+            @click="$emit('exit')" />
           <div class="userData">
             <div class="fileName">replay.ttrm</div>
             <div class="fileUsers" v-bind:style="{ color: `${defaultRainbow.teal}`, textAlign: 'center' }">
-              <div v-for="(user, index) in props.users" :key="index">
-                <strong v-bind:style="{ color: defaultRainbow.green }" v-if="checkedNames.includes(user.username)">{{
-                  user.username
+              <div v-for="(user, index) in props.data.users" :key="index">
+                <strong v-bind:style="{ color: defaultRainbow.green, whiteSpace: 'nowrap' }"
+                  v-if="checkedNames.includes(user.username)">{{
+                    user.username
                   }}</strong>
                 <span v-else> {{ user.username }}</span>
-                <span class="punct" v-if="index < props.users.length - 2">,</span>
+                <span class="punct" v-if="index < props.data.users.length - 2">,</span>
                 <span style="white-space: nowrap; margin-left: 1ch;" class="punct"
-                  v-else-if="index === props.users.length - 2 && props.users.length === 2">and</span>
-                <span style="white-space: nowrap;" class="punct" v-else-if="index === props.users.length - 2">,
+                  v-else-if="index === props.data.users.length - 2 && props.data.users.length === 2">and</span>
+                <span style="white-space: nowrap;" class="punct" v-else-if="index === props.data.users.length - 2">,
                   and</span>
               </div>
             </div>
@@ -28,12 +31,15 @@
     <div class="back">
       <slot name="back">
         <div class="card backCard">
+          <button class="flipButton fade-in" @click="flip">
+            <FlipIcon />
+          </button>
           <button class="openStatsLink"
             style="position: absolute; bottom:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open
             Stats</button>
           <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px" @click="$emit('exit')" />
           <div class="userList">
-            <label v-for="user of props.users" v-bind:key="user.id" class="checkContainer">{{ user.username }}
+            <label v-for="user of props.data.users" v-bind:key="user.id" class="checkContainer">{{ user.username }}
               <input type="checkbox" v-bind:value="user.username" v-model="checkedNames">
               <span class="checkmark"></span>
             </label>
@@ -41,35 +47,62 @@
         </div>
       </slot>
     </div>
+    <div class="queryStatus" v-text="queryStatus" :class="{
+      'status-pending': queryStatus == 'pending',
+      'status-failed': queryStatus == 'failed' || queryStatus == 'unloaded',
+      'status-completed': queryStatus == 'completed',
+    }"></div>
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import CloseIcon from "./closeIcon.vue";
 import { defaultRainbow } from "@/theme/colors";
-import type { User } from "@/replay/types/leagueRecord";
 import FlipIcon from "./flipIcon.vue";
+import { useStatStore } from "@/stores/statFetch";
+import type { ReplayDropData } from "@/replay/types/replayDrop";
+import type { GameStats } from "@/replay/types/stats";
 const props = defineProps<{
-  replayName: string,
-  error?: string,
-  users: User[]
+  data: ReplayDropData,
 }>()
 
-defineEmits<{
-  (e: 'exit'): void
+const statStore = useStatStore()
+const { newFile, fileStatus } = statStore
+onMounted(() => {
+  newFile(props.data.dataHash, props.data.data)
+})
+
+function getStatusMessage(t: {
+  [key: string]: GameStats;
+} | "pending" | "failed" | 'unloaded') {
+  const status = t
+  if (status == 'failed' || status == 'pending' || status == 'unloaded') {
+    return status
+  } else {
+    return 'completed'
+  }
+}
+const queryStatus = computed(() => {
+  return getStatusMessage(fileStatus(props.data.dataHash))
+})
+
+const emit = defineEmits<{
+  (e: 'exit'): void,
+  (e: 'checkedNamed', value: string[]): void
 }>()
-const checkedNames = ref<string[]>(props.users.map(x => x.username))
-const flipping = ref(false)
+const checkedNames = ref<string[]>(props.data.users.map(x => x.username))
 const flipped = ref(false);
 const flip = () => {
   flipped.value = !flipped.value
-  flipping.value = true
-  setTimeout(() => flipping.value = false, 200)
 };
+
+watch(checkedNames, () => {
+  emit("checkedNamed", checkedNames.value)
+})
+
 </script>
 <style lang="css" scoped>
 @import "@/assets/card.css";
-
 
 .checkContainer {
   color: var(--f_high);

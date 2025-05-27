@@ -8,8 +8,19 @@ import { ref } from 'vue';
 import ProfileCard from '@/components/profileCard.vue';
 import type { ReplayDropData } from '@/replay/types/replayDrop';
 import ReplayCard from '@/components/replayCard.vue';
+import InfoCard from '@/components/infoCard.vue';
+import type { GameStats } from '@/replay/types/stats';
 
 const cardData = ref<(ProfileData | ReplayDropData)[]>([])
+const cardDataHousing = { data: cardData }
+
+const replayStats = ref<{ [key: string]: GameStats }>({})
+const fileStats = ref<{ [key: string]: GameStats }>({})
+
+function calculateVisualize() {
+  const newStats: { [key: string]: GameStats } = {}
+}
+
 
 function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData {
   return (card as ProfileData).username !== undefined;
@@ -31,27 +42,27 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
           </nav>
         </div>
       </header>
-      <FileUpload @fileUpload="(files) => {
+      <FileUpload :cards="cardDataHousing.data" @fileUpload="(files) => {
         cardData = [...files, ...cardData]
       }" />
     </div>
 
     <div style="display: flex; flex-direction: column;">
       <div>
-        <PlayerSearch @response="(resp) => {
+        <PlayerSearch :cards="cardDataHousing.data" @response="(resp) => {
           cardData.unshift(resp)
         }" />
       </div>
       <TransitionGroup class="cardContainer" tag="div" name="list">
+        <InfoCard v-if="cardData.length == 0" />
         <template v-for="card of cardData">
-          <ProfileCard v-if="isProfileData(card)" v-show="card.avatarLoaded" :key="card.userId"
-            :username="card.username" :avatar="card.avatar" :records="card.response.data!.entries" :id="card.userId"
+          <ProfileCard v-if="isProfileData(card)" v-show="card.avatarLoaded" :key="card.userId" :data="card"
             @profileLoad="() => {
               card.avatarLoaded = true
             }" @exit="() => {
               cardData = cardData.filter(x => isProfileData(x) && x.userId != card.userId)
             }" />
-          <ReplayCard v-else :replayName="card.fileName" :users="card.users" v-bind:key="card.dataHash" @exit="() => {
+          <ReplayCard v-else :key="card.dataHash" :data="card" @exit="() => {
             cardData = cardData.filter(x => !isProfileData(x) && x.dataHash != card.dataHash)
           }" />
         </template>

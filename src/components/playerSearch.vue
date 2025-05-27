@@ -8,7 +8,12 @@
 <script lang="ts" setup>
 import type { LeagueResponse } from '@/replay/types/leagueRecord';
 import type { ProfileData } from '@/replay/types/profile';
-import { ref } from 'vue';
+import type { ReplayDropData } from '@/replay/types/replayDrop';
+import { ref, type Ref } from 'vue';
+
+const props = defineProps<{
+  cards: Ref<(ProfileData | ReplayDropData)[]>
+}>()
 
 const emit = defineEmits<{
   (e: 'response', value: ProfileData): void
@@ -20,6 +25,12 @@ function onUsernameExit() {
   usernameInput.value = submittingUsername.value
 }
 async function onUsernameSubmit() {
+  if (props.cards.value.some(x => 'username' in x && x.username === usernameInput.value)) {
+    usernamePlaceholder.value = 'duplicate username';
+    usernameInput.value = ''
+    submittingUsername.value = '';
+  }
+
   submittingUsername.value = usernameInput.value
   if (submittingUsername.value == "") return
 

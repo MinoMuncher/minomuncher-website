@@ -1,18 +1,69 @@
 <template>
   <div class="dropZone" :data-active="active" @dragenter.prevent="setActive" @dragover.prevent="setActive"
-    @dragleave.prevent="setInactive" @drop.prevent="onDrop" :class="{ 'dropActive': active }" v-text="dropText">
+    @dragleave.prevent="setInactive" @drop.prevent="onDrop" :class="{ 'dropActive': active }">
+    <p>drag or </p>
+    <label for="files"><strong>select</strong></label>
+    <input @change="fileInputChange()" id="files" type="file" ref="fileInput" name="files" multiple>
+    <p> ttrm</p>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { ProfileData } from '@/replay/types/profile';
 import type { ReplayDropData } from '@/replay/types/replayDrop';
 import md5 from 'md5';
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, type Ref } from 'vue'
+
+
+const props = defineProps<{
+  cards: Ref<(ProfileData | ReplayDropData)[]>
+}>()
+
+
 const emit = defineEmits<{
   (e: 'fileUpload', value: ReplayDropData[]): void
 }>()
 
-const dropText = ref("drag and drop\nttrm files here")
+async function handleFiles(files: FileList) {
+  const okayFiles: ReplayDropData[] = []
+  for (const file of files) {
+    try {
+      const rawText = await file.text()
+      const rawData = JSON.parse(rawText)
+      const dataHash = md5(rawText)
+
+      if (props.cards.value.some(x => 'dataHash' in x && x.dataHash === dataHash)) {
+        continue
+      }
+
+      if ('users' in rawData && Array.isArray(rawData['users'])) {
+        okayFiles.push({
+          fileName: file.name,
+          users: rawData['users'],
+          data: rawText,
+          dataHash,
+        })
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
+  }
+  if (okayFiles.length > 0) {
+    emit('fileUpload', okayFiles)
+  }
+}
+
+
+const fileInput = ref<HTMLInputElement | undefined>()
+function fileInputChange() {
+  if (!fileInput.value) throw Error()
+  if (fileInput.value.files) {
+    handleFiles(fileInput.value.files).finally(() => {
+      fileInput.value!.value = ''
+    })
+  }
+}
 
 const active = ref(false)
 let inActiveTimeout: number = -1
@@ -32,37 +83,7 @@ async function onDrop(e: DragEvent) {
     return
   }
   setInactive()
-  const okayFiles: ReplayDropData[] = []
-  for (const file of e.dataTransfer.files) {
-    try {
-      const rawText = await file.text()
-      const rawData = JSON.parse(rawText)
-      if ('users' in rawData && Array.isArray(rawData['users'])) {
-        okayFiles.push({
-          fileName: file.name,
-          users: rawData['users'],
-          data: rawText,
-          dataHash: md5(rawText)
-        })
-      fetch("/api/replay", {
-        method: "POST",
-        body: rawText,
-      }).then(x=>x.text()).then(console.log)
-
-      }
-    } catch (e) {
-      console.error(e)
-    }
-
-  }
-  if (okayFiles.length > 0) {
-    emit('fileUpload', okayFiles)
-  } else if (e.dataTransfer.files.length > 0) {
-    dropText.value = "invalid replay!"
-    setTimeout(() => {
-      dropText.value = "drag and drop\nttrm files here"
-    }, 1000)
-  }
+  handleFiles(e.dataTransfer.files)
 }
 
 function preventDefaults(e: Event) {
@@ -86,6 +107,10 @@ onUnmounted(() => {
 
 
 <style lang="css" scoped>
+input[type=file] {
+  display: none;
+}
+
 .dropZone {
   white-space: pre;
   display: flex;
