@@ -90,9 +90,10 @@ const checkedReplays = ref(props.data.checkedReplays)
 
 const statStore = useStatStore()
 const { newReplay, replayStatus } = statStore
-onMounted(() => {
+onMounted(async () => {
   for (const entry of props.data.response.data!.entries) {
     newReplay(props.data.username, entry.replayid)
+    await new Promise(r => setTimeout(r, 1000));
   }
 })
 
