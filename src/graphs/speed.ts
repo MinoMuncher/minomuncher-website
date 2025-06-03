@@ -25,8 +25,8 @@ const rainbow = [
 export function createSpeed(rootDiv: HTMLElement, unit: string, dials: number[], names: string[], max: number, cutoffs: number[], labels: { label: string, color: string }[]) {
   const svg = d3.select(rootDiv)
     .append("svg")
-    .attr("width", width)
-    .attr("height", height)
+    .attr("width", width * 1.5)
+    .attr("height", height * 1.5)
     .attr("viewBox", [0, 0, width, height])
 
   const data: SpeedArcPoint[] = []

@@ -44,6 +44,14 @@ export const useStatStore = defineStore('statFetches', () => {
       res: 'pending'
     }
     fetch(`/api/replay/${replayId}`).then(x => x.json()).then(x => {
+      if (Object.keys(x).length == 0) {
+        throw Error("no data from replay")
+      }
+      for (const key in x) {
+        if (!('death' in x[key])) {
+          throw Error("invalid replay")
+        }
+      }
       resp.res = x
       triggerRef(statFetches)
       console.log("finished!")
@@ -71,6 +79,15 @@ export const useStatStore = defineStore('statFetches', () => {
       method: "POST",
       body: data,
     }).then(x => x.json()).then(x => {
+      if (Object.keys(x).length == 0) {
+        throw Error("no data from replay")
+      }
+      for (const key in x) {
+        if (!('death' in x[key])) {
+          throw Error("invalid replay")
+        }
+      }
+      console.log(x)
       resp.res = x
       triggerRef(statFetches)
       console.log("finished!")

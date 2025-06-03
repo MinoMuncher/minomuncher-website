@@ -3,9 +3,8 @@
     <div id="left-zone">
       <ul class="list">
         <li v-for="key in OrderedGraphTypes" v-bind:key="key" class="item">
-          <button v-bind:class="{ selected: selectedGraph === key || altSelectedGraph === key }"
-            @click="newGraph(key)">{{
-              key }}</button>
+          <button v-bind:class="{ selected: selectedGraph === key }" @click="newGraph(key)">{{
+            key }}</button>
         </li>
         <li class="item">
           <button @click="router.back()" :style="{ color: defaultRainbow.red }">
@@ -14,13 +13,9 @@
       </ul>
     </div>
     <div id="right-zone">
-      <TransitionGroup name="list">
-        <GraphWrapper class="graphWrapper" :data="useVisualize().visualize" v-if="selectedGraph != undefined"
-          v-bind:type="selectedGraph"></GraphWrapper>
-        <GraphWrapper class="graphWrapper" :data="useVisualize().visualize" v-else-if="altSelectedGraph != undefined"
-          v-bind:type="altSelectedGraph">
-        </GraphWrapper>
-      </TransitionGroup>
+      <Transition name="list">
+        <GraphWrapper class="graphWrapper" :data="useVisualize().visualize" :type="selectedGraph"></GraphWrapper>
+      </Transition>
     </div>
   </div>
 </template>
@@ -32,29 +27,18 @@ import GraphWrapper from '@/components/graphWrapper.vue';
 import { defaultRainbow } from '@/theme/colors';
 import { useVisualize } from '@/stores/visualize';
 
-const selectedGraph = ref<GraphType | undefined>("clear types")
-const altSelectedGraph = ref<GraphType | undefined>(undefined)
+const selectedGraph = ref<GraphType>("clear types")
 
 
 function newGraph(t: GraphType) {
-  if (altSelectedGraph.value == undefined) {
-    altSelectedGraph.value = t
-    selectedGraph.value = undefined
-  } else {
-    altSelectedGraph.value = undefined
-    selectedGraph.value = t
-  }
+  console.log(t)
+  selectedGraph.value = t
+
 }
 </script>
 <style lang="css" scoped>
 @import url('https://fonts.googleapis.com/css2?family=Martel:wght@200;300;400;600;700;800;900&display=swap');
 
-.graphWrapper {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
 
 .list-enter-active,
 .list-leave-active {
@@ -76,10 +60,9 @@ function newGraph(t: GraphType) {
 .list {
   display: flex;
   flex-direction: column;
-  width: 200px;
   padding-top: 50px;
   padding-bottom: 50px;
-
+  font-size: 2.2vh;
 }
 
 li {
@@ -116,15 +99,20 @@ ul {
 
 #left-zone {
   border-right: 3px solid var(--f_low);
+  width: 30%;
 }
 
 #right-zone {
-  width: 700px;
-  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 
 #scene {
+  height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: row;
 }

@@ -21,8 +21,8 @@ export function createSankey<NodeName extends string>(
   const svg = d3.select(rootDiv)
     .append("svg")
     .attr("viewBox", [0, 0, width, height])
-    .attr("width", width)
-    .attr("height", height)
+    .attr("width", width * 1.5)
+    .attr("height", height * 1.5)
     .attr("style", "max-width: 100%; height: auto;")
     .attr("viewBox", [0, 0, width, height])
 

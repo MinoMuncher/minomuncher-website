@@ -57,8 +57,8 @@ export type radarAxis = {
 export function createRadar(rootDiv: HTMLElement, graphName: string, data: radarAxis[], userData: number[][], userNames: string[]) {
   const svg = d3.select(rootDiv)
     .append("svg")
-    .attr("width", width)
-    .attr("height", height)
+    .attr("width", width * 1.5)
+    .attr("height", height * 1.5)
     .attr("viewBox", [0, 0, width, height])
 
 

@@ -92,8 +92,10 @@ const statStore = useStatStore()
 const { newReplay, replayStatus } = statStore
 onMounted(async () => {
   for (const entry of props.data.response.data!.entries) {
-    newReplay(props.data.username, entry.replayid)
-    await new Promise(r => setTimeout(r, 1000));
+    if (entry.stub) continue
+    if (newReplay(props.data.username, entry.replayid) == 'pending') {
+      await new Promise(r => setTimeout(r, 1000));
+    }
   }
 })
 
@@ -188,7 +190,7 @@ function openStats() {
     const status = replayStatus(rep.replayid)
     if (typeof status == "object") {
       for (const key in status) {
-        if (key.toLowerCase() != props.data.username) {
+        if (key.toLowerCase() != props.data.username.toLowerCase()) {
           continue
         }
         if (key.toLowerCase() in newStats) {

@@ -21,8 +21,8 @@ export function createMultiPPS(rootDiv: HTMLElement, graphname: string, username
   const margin = { top: 60, right: 40, bottom: 30, left: 40 };
   const svg = d3.select(rootDiv)
     .append("svg")
-    .attr("width", width)
-    .attr("height", height)
+    .attr("width", width * 1.5)
+    .attr("height", height * 1.5)
     .attr("viewBox", [0, 0, width, height])
 
   let min = Infinity

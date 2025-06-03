@@ -104,7 +104,7 @@
     </div>
     <div v-show="!aboutActive" id="d3RootDiv" ref="d3RootDiv"></div>
     <button v-if="!aboutActive" @click="SVGToPng(d3RootDiv!, type)">download</button>
-    <button v-text="!aboutActive ? 'about' : 'visualize'" @click="aboutActive = !aboutActive"
+    <button v-text="!aboutActive ? 'about this graph' : 'visualize'" @click="aboutActive = !aboutActive"
       style="border-left: 2px solid var(--f_low);"></button>
   </div>
 </template>
@@ -113,8 +113,8 @@
   font-family: "Martel", serif;
   font-weight: 700;
   font-style: normal;
+  width: 800px;
   font-size: 10px;
-  width: 600px;
 }
 
 #aboutStat p strong {
@@ -126,13 +126,13 @@
 }
 
 #aboutStat {
-  overflow-y: scroll;
+  overflow-y: auto;
   font-family: "Martel", serif;
   font-weight: 700;
   font-style: normal;
   font-size: 24px;
   width: 600px;
-  height: 500px;
+  max-height: 760px;
   color: var(--f_low)
 }
 
@@ -172,7 +172,7 @@ import * as d3 from "d3"
 
 import { type GraphType } from "@/graphs/types";
 
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { SVGToPng } from "@/graphs/util";
 
 const aboutActive = ref(false)
@@ -195,6 +195,10 @@ function reRender() {
   removeAllChildNodes(d3RootDiv.value)
   createGraph(props.type, props.data)
 }
+
+watch(props, () => {
+  reRender()
+})
 
 onMounted(() => {
   reRender()
@@ -658,6 +662,7 @@ function createGraph(graphType: GraphType, stats: { [key: string]: CumulativeSta
     const data: number[] = []
     const names = []
     for (const key in stats) {
+      if (!Number.isFinite(stats[key].downstackingRatio)) continue
       data.push(Math.round(stats[key].downstackingRatio * 100))
       names.push(key)
     }

@@ -20,19 +20,23 @@ export function calculateCumulativeStats(stats: GameStats): CumulativeStats {
   const surgeTimeSecs = surge.frames / 60
   const surgeTimeMin = surgeTimeSecs / 60
 
-  const PPSSegments: number[] = []
+  let PPSSegments: number[] = []
   for (let i = 0; i < stats.placement.ppsSegments.length; i++) {
     const PPS = i / 10
     for (let j = 0; j < stats.placement.ppsSegments[i]!; j++)PPSSegments.push(PPS)
   }
 
-  //const ppsSegAvg = PPSSegments.reduce((accumulator, currentValue) => accumulator + currentValue, 0)/PPSSegments.length;
-
+  if (PPSSegments.length > 2000) {
+    PPSSegments = getRandomSubarray(PPSSegments, 2000)
+  }
 
   const gmm = new GMM(3);
-  gmm._initialize(PPSSegments)
-  gmm.optimize(PPSSegments); // updates the means of the GMM with the K-means++ initialization algorithm, returns something like [1.3, 7.4, 14.3]
 
+  try {
+    gmm._initialize(PPSSegments)
+    gmm.optimize(PPSSegments);
+  } catch {
+  }
 
   function getVariance(arr: number[], mean: number) {
     return arr.reduce(function (pre, cur) {
@@ -107,4 +111,18 @@ export function calculateCumulativeStats(stats: GameStats): CumulativeStats {
 
     downstackingRatio: stats.placement.stackSpeed.downstacking.totalFrames / (stats.placement.stackSpeed.stacking.totalFrames + stats.placement.stackSpeed.downstacking.totalFrames)
   }
+}
+
+
+
+function getRandomSubarray<T>(arr: T[], size: number) {
+  const shuffled = arr.slice(0)
+  let i = arr.length, temp, index;
+  while (i--) {
+    index = Math.floor((i + 1) * Math.random());
+    temp = shuffled[index];
+    shuffled[index] = shuffled[i];
+    shuffled[i] = temp;
+  }
+  return shuffled.slice(0, size);
 }

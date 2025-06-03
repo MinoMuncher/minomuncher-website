@@ -46,8 +46,8 @@ export function createOverflowStackedBar<T extends StatMap>(rootDiv: HTMLElement
   }
   const svgBase = d3.select(rootDiv)
     .append("svg")
-    .attr("width", 500)
-    .attr("height", 300)
+    .attr("width", 500 * 1.5)
+    .attr("height", 300 * 1.5)
     .attr("viewBox", [0, 0, 500, 300])
 
   {

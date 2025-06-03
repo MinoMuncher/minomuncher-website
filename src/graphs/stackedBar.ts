@@ -56,8 +56,8 @@ export function createStackedBar<T extends StatMap>(rootDiv: HTMLElement, graphN
     .padding(0.3);
   const svgBase = d3.select(rootDiv)
     .append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("width", (width + margin.left + margin.right) * 1.5)
+    .attr("height", (height + margin.top + margin.bottom) * 1.5)
     .attr("viewBox", [0, 0, width + margin.left, height + margin.top + margin.bottom])
   //.attr("viewBox", [0, 0, width, height])
   //.attr("style", "max-width: 100%; height: auto; height: intrinsic;")

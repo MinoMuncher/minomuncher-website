@@ -80,7 +80,7 @@ function calculateVisualize() {
         const status = replayStatus(rep.replayid)
         if (typeof status == "object") {
           for (const key in status) {
-            if (key.toLowerCase() != data.username) {
+            if (key.toLowerCase() != data.username.toLowerCase()) {
               continue
             }
             if (key.toLowerCase() in newStats) {
