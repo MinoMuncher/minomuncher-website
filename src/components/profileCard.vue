@@ -207,7 +207,7 @@ function openStats() {
   }
   setVisualize(cumulativeStats)
   if (Object.keys(cumulativeStats).length == 0) return
-  router.push("/stats")
+  router.push({ path: '/stats'})
 }
 
 </script>

@@ -26,8 +26,8 @@ const { setVisualize } = useVisualize()
 const { username } = useUsernameStore()
 
 onMounted(async () => {
+  setVisualize({})
   if (username.length == 0) return
-
   if (cardData.value.some(x => 'username' in x && x.username === username)) {
     return
   }
@@ -120,7 +120,7 @@ function calculateVisualize() {
   }
   setVisualize(cumulativeStats)
   if (Object.keys(cumulativeStats).length == 0) return
-  router.push("/stats")
+  router.push({ path: '/stats' })
 }
 
 function updateCheckedUsers(dataHash: string, checkedUsers: string[]) {
@@ -185,12 +185,12 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
             @profileLoad="() => {
               card.avatarLoaded = true
             }" @exit="() => {
-              cardData = cardData.filter(x => isProfileData(x) && x.userId != card.userId)
+              cardData = cardData.filter(x => !isProfileData(x) || x.userId != card.userId)
             }" @checked-replays="(y) => {
               updateCheckedReplays(card.userId, y)
             }" />
           <ReplayCard v-else :key="card.dataHash" :data="card" @exit="() => {
-            cardData = cardData.filter(x => !isProfileData(x) && x.dataHash != card.dataHash)
+            cardData = cardData.filter(x => isProfileData(x) || x.dataHash != card.dataHash)
           }" @checked-names="(y) => updateCheckedUsers(card.dataHash, y)" />
         </template>
 

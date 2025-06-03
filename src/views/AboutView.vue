@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import LogoIcon from '@/components/logoIcon.vue';
+import { useVisualize } from '@/stores/visualize';
 import { onMounted, ref } from 'vue';
 
 const TEXT_BLURBS = [
@@ -22,9 +23,11 @@ function newTextBlurb(): string {
   }
   return newText
 }
+const { setVisualize } = useVisualize()
 
 onMounted(() => {
   textBlurb.value = newTextBlurb()
+  setVisualize({})
 })
 </script>
 

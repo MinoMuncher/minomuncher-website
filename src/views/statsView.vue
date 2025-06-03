@@ -7,14 +7,14 @@
             key }}</button>
         </li>
         <li class="item">
-          <button @click="router.back()" :style="{ color: defaultRainbow.red }">
+          <button @click="router.push({ path: '/home' })" :style="{ color: defaultRainbow.red }">
             back</button>
         </li>
       </ul>
     </div>
     <div id="right-zone">
       <Transition name="list">
-        <GraphWrapper class="graphWrapper" :data="useVisualize().visualize" :type="selectedGraph"></GraphWrapper>
+        <GraphWrapper class="graphWrapper" :data="data" :type="selectedGraph"></GraphWrapper>
       </Transition>
     </div>
   </div>
@@ -26,6 +26,10 @@ import { OrderedGraphTypes, type GraphType } from '@/graphs/types';
 import GraphWrapper from '@/components/graphWrapper.vue';
 import { defaultRainbow } from '@/theme/colors';
 import { useVisualize } from '@/stores/visualize';
+import { demoStats } from '@/replay/demo';
+
+const cachedData = useVisualize().visualize
+const data = Object.keys(cachedData).length > 0 ? cachedData : demoStats
 
 const selectedGraph = ref<GraphType>("clear types")
 

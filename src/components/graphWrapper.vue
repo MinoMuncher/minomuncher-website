@@ -596,6 +596,7 @@ function createGraph(graphType: GraphType, stats: { [key: string]: CumulativeSta
     const data: { name: string; links: { source: number; target: number; value: number; }[]; }[] = []
 
     for (const key in stats) {
+      if (!(stats[key].cheeseLinesRecieved + stats[key].cleanLinesRecieved > 0)) continue
       const s = stats[key]
       data.push({
         name: key,
@@ -697,6 +698,7 @@ function createGraph(graphType: GraphType, stats: { [key: string]: CumulativeSta
     const data: number[] = []
     const names = []
     for (const key in stats) {
+      if (!Number.isFinite(stats[key].downstackingRatio)) continue
       data.push(Math.round(stats[key].attackCheesiness * 100))
       names.push(key)
     }
