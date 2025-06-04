@@ -3,8 +3,8 @@ export function SVGToPng(input: HTMLElement, title: string) {
   let height = "600"
 
   if (input.firstChild && (input.firstChild as SVGAElement).getAttribute("height")! && (input.firstChild as SVGAElement).getAttribute("width")!) {
-    height = (input.firstChild as SVGAElement).getAttribute("height")!
-    width = (input.firstChild as SVGAElement).getAttribute("height")!
+    height = String(Number.parseInt((input.firstChild as SVGAElement).getAttribute("height")!) * 2)
+    width = String(Number.parseInt((input.firstChild as SVGAElement).getAttribute("height")!) * 2)
   } else {
     return
   }
