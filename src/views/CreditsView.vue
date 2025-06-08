@@ -73,7 +73,7 @@ onMounted(() => {
       Minomuncher thanks the cooperation of the <em>Tetr.io</em> team with development!
     </p>
     <p style="text-align: center;">
-      <RouterLink style="color: var(--rainbow_red); text-decoration: none;" to="/">Go Home</RouterLink>
+      <RouterLink style="color: var(--rainbow_red)" to="/">Go Home</RouterLink>
     </p>
   </main>
 </template>
@@ -116,9 +116,13 @@ h1 {
   margin-bottom: 1rem;
 }
 
+b a {
+  text-decoration: underline;
+}
+
 a {
   color: inherit;
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 a:hover {
