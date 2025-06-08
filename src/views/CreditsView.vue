@@ -13,7 +13,7 @@ const DONORS = [
   "<3 Skyfire",
   "SWNG!!!",
   "ORZ ORZ",
-  "TY Caleb",
+  "TY Kerr",
   "TY Nancy!"
 ]
 
