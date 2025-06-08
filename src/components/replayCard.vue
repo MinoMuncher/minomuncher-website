@@ -120,7 +120,7 @@ function calculateVisualize() {
       if (key.toLowerCase() in newStats) {
         combineStats(newStats[key.toLowerCase()], status[key])
       } else {
-        newStats[key.toLowerCase()] = status[key]
+        newStats[key.toLowerCase()] = structuredClone(status[key])
       }
     }
     const cumulativeStats: Players = {}

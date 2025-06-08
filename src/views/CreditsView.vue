@@ -49,20 +49,20 @@ onMounted(() => {
     <p>
       <em>THANK YOU TO MY DONORS: </em>
       <b style="color: var(--rainbow_red)">Mireu
-        Moose
-        Jed
-        Mewk
-        Skyfire
-        Baron
+        <a href="https://www.twitch.tv/puzzlekingdom" target="_blank">Moose </a>
+        <a href="https://www.twitch.tv/puzzlekingdom" target="_blank">Jed </a>
+        <a href="https://www.twitch.tv/mewk___" target="_blank">Mewk </a>
+        <a href="https://x.com/skyfire_tetris" target="_blank">Skyfire </a>
+        <a href="https://www.instagram.com/baronc.cc" target="_blank">Baron </a>
         Nancy
       </b>
       <b style="color: var(--rainbow_orange)">
         swng
       </b>
       <b style="color: var(--rainbow_yellow)">
-        Andrew
+        <a href="https://www.twitch.tv/pokimane" target="_blank">Andrew</a>
         Orz
-        Caleb
+        Kerr
         Beyeet
       </b>
     </p>
@@ -73,7 +73,7 @@ onMounted(() => {
       Minomuncher thanks the cooperation of the <em>Tetr.io</em> team with development!
     </p>
     <p style="text-align: center;">
-      <RouterLink style="color: var(--rainbow_red)" to="/">Go Home</RouterLink>
+      <RouterLink style="color: var(--rainbow_red); text-decoration: none;" to="/">Go Home</RouterLink>
     </p>
   </main>
 </template>
@@ -96,8 +96,6 @@ onMounted(() => {
   transform: scale(1.2)
 }
 
-
-
 main {
   font-family: Arial, sans-serif;
   color: var(--f_high);
@@ -119,8 +117,8 @@ h1 {
 }
 
 a {
-  color: #0066cc;
-  text-decoration: none;
+  color: inherit;
+  text-decoration: underline;
 }
 
 a:hover {

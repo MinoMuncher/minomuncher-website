@@ -196,7 +196,7 @@ function openStats() {
         if (key.toLowerCase() in newStats) {
           combineStats(newStats[key.toLowerCase()], status[key])
         } else {
-          newStats[key.toLowerCase()] = status[key]
+          newStats[key.toLowerCase()] = structuredClone(status[key])
         }
       }
     }
@@ -207,7 +207,7 @@ function openStats() {
   }
   setVisualize(cumulativeStats)
   if (Object.keys(cumulativeStats).length == 0) return
-  router.push({ path: '/stats'})
+  router.push({ path: '/stats' })
 }
 
 </script>
