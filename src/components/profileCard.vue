@@ -6,12 +6,14 @@
           <button class="flipButton fade-in" @click="flip">
             <FlipIcon />
           </button>
+          <button v-if="checkedCount" class="openStatsLink" @click="openStats"
+            style="position: absolute; top:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open Stats</button>
           <CloseIcon class="icon" style="position: absolute; top:20px; right: 20px; z-index: 3;"
             @click="$emit('exit')" />
           <img class="profileImg"
             v-bind:src="props.data.avatar ? props.data.avatar : loadRandomImage(props.data.userId)"
             @load="$emit('profileLoad')">
-          <div class="userData">
+          <div class="profileName">
             <div class="username">{{ props.data.username }}</div>
           </div>
         </div>
@@ -19,65 +21,71 @@
     </div>
     <div class="back">
       <slot name="back">
-        <div class="card backCard">
+        <div class="card">
           <button class="flipButton fade-in" @click="flip">
             <FlipIcon />
           </button>
-          <button class="openStatsLink" @click="openStats"
-            style="position: absolute; top:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open Stats</button>
+          <button :disabled="pendingCount" v-if="failedCount" class="openStatsLink" @click="retryReplays"
+            style="position: absolute; top:20px; left: 50%; transform: translateX(-50%); z-index: 3">Retry</button>
           <CloseIcon class="icon" style="position: absolute; top:20px; right: 20px; z-index: 3;"
             @click="$emit('exit')" />
           <div class="recordContainer">
             <ul class="recordList">
               <li style="height: 10px;">
               </li>
-              <li v-for="rec of props.data.response.data!.entries.filter(x => !x.stub).map(getRecordData)"
-                v-bind:key="rec.replayId">
+              <li v-for="rec of renderedReplays" v-bind:key="rec.replayId">
                 <div class="link-box">
                   <a v-bind:href="`https://tetr.io/#R:${rec.replayId}`" target="_blank">
                     <ExitIcon class="iconStroke"></ExitIcon>
                   </a>
                 </div>
                 <div class="check-box">
-                  <label class="checkContainer">
+                  <label v-if="rec.res != 'failed' && rec.res != 'pending'" class="checkContainer">
                     <input @change="$emit('checkedReplays', checkedReplays)" type="checkbox" v-bind:value="rec.replayId"
                       v-model="checkedReplays">
                     <span class="checkmark"></span>
                   </label>
+                  <label v-bind:style="{ color: rec.res == 'failed' ? defaultRainbow.red : defaultRainbow.orange }"
+                    v-else>{{ rec.res }}</label>
                 </div>
-                <div class="score-box" v-bind:style="{ color: rec.outcomeColor }" v-text="rec.scoreString"></div>
-                <a v-bind:href="`https://ch.tetr.io/u/${rec.oppName}`" target="_blank" class="name-box"
-                  v-text="rec.oppName"></a>
+                <div class="score-box" v-bind:style="{ color: rec.data!.outcomeColor }" v-text="rec.data!.scoreString">
+                </div>
+                <a v-bind:href="`https://ch.tetr.io/u/${rec.data!.oppName}`" target="_blank" class="name-box"
+                  v-text="rec.data!.oppName"></a>
               </li>
             </ul>
           </div>
         </div>
       </slot>
     </div>
-    <div class="queryStatus" v-text="`${queryStatus[0]}/${queryStatus[1]}`" :class="{
-      'status-pending': queryStatus[0] < queryStatus[1],
-      'status-completed': queryStatus[0] == queryStatus[1],
-    }"></div>
+    <div style="display: flex; flex-direction: row;" class="queryStatus">
+      <div v-text="`${queryStatus[0]}/${queryStatus[1]} loaded, ${queryStatus[2]} failed`" :class="{
+        'status-pending': queryStatus[0] < queryStatus[1] || queryStatus[2] != 0,
+        'status-completed': queryStatus[0] == queryStatus[1] && queryStatus[2] == 0,
+      }"></div>
+      <button @click="emit('reload')" style="margin-left: auto; font-size: inherit;" class="openStatsLink">reload?</button>
+    </div>
+
   </div>
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import CloseIcon from "./closeIcon.vue";
+import CloseIcon from "./icons/closeIcon.vue";
 import { type RecordEntry } from "@/replay/types/leagueRecord";
-import ExitIcon from "./exitIcon.vue";
+import ExitIcon from "./icons/exitIcon.vue";
 import { defaultRainbow } from "@/theme/colors";
 import Identicon from "identicon.js"
-import FlipIcon from "./flipIcon.vue";
+import FlipIcon from "./icons/flipIcon.vue";
 import md5 from 'md5'
-import { useStatStore } from "@/stores/statFetch";
+import { useStatStore, type ReplayStatFetch } from "@/stores/statFetch";
 import type { ProfileData } from "@/replay/types/profile";
-import { combineStats, type GameStats, type Players } from "@/replay/types/stats";
-import { calculateCumulativeStats } from "@/replay/statLogic";
 import { useVisualize } from "@/stores/visualize";
 import router from "@/router";
+import { calculateCumulativeStats, combineStats, type PlayerCumulativeStats, type PlayerGameStats } from "minomuncher-core";
 
 const emit = defineEmits<{
   (e: 'exit'): void,
+  (e: 'reload'): void,
   (e: 'profileLoad'): void,
   (e: 'checkedReplays', value: string[]): void,
 }>()
@@ -86,22 +94,98 @@ const props = defineProps<{
 }>()
 
 const checkedReplays = ref(props.data.checkedReplays)
-
-
 const statStore = useStatStore()
+
+const renderedReplays = computed(() => {
+  const replayIds = props.data.response.data!.entries.map(x => x.replayid)
+  const matchingStatuses: ReplayStatFetch[] = statStore.statFetches.filter(x => "replayId" in x && replayIds.includes(x.replayId)).map(x => x as ReplayStatFetch) //todo just use a typeguard omfg
+  matchingStatuses.sort((a, b) => replayIds.indexOf(a.replayId) - replayIds.indexOf(b.replayId))
+  return matchingStatuses.map(x => {
+    const data = getRecordData(props.data.response.data!.entries.find(y => y.replayid == x.replayId)!)
+    return { replayId: x.replayId, res: x.res, data }
+  })
+})
+
+
+const pendingCount = computed(() => {
+  for (const rep of props.data.response.data!.entries) {
+    let found = false
+    for (const r of props.data.checkedReplays) {
+      if (r == rep.replayid) {
+        found = true
+        break;
+      }
+    }
+    if (!found) {
+      continue
+    }
+    const status = replayStatus(rep.replayid)
+    if (status == 'pending') {
+      return true
+    }
+  }
+  return false
+})
+
+const checkedCount = computed(() => {
+  for (const rep of props.data.response.data!.entries) {
+    let found = false
+    for (const r of props.data.checkedReplays) {
+      if (r == rep.replayid) {
+        found = true
+        break;
+      }
+    }
+    if (!found) {
+      continue
+    }
+    const status = replayStatus(rep.replayid)
+    if (typeof status == "object") {
+      return true
+    }
+  }
+  return false
+})
+
+const failedCount = computed(() => {
+  for (const rep of props.data.response.data!.entries) {
+    let found = false
+    for (const r of props.data.checkedReplays) {
+      if (r == rep.replayid) {
+        found = true
+        break;
+      }
+    }
+    if (!found) {
+      continue
+    }
+    const status = replayStatus(rep.replayid)
+    if (status == "failed") {
+      return true
+    }
+  }
+  return false
+})
+
+
 const { newReplay, replayStatus } = statStore
 onMounted(async () => {
   for (const entry of props.data.response.data!.entries) {
     if (entry.stub) continue
-    if (newReplay(props.data.username, entry.replayid) == 'pending') {
-      await new Promise(r => setTimeout(r, 1000));
-    }
+    newReplay(props.data.username, entry.replayid)
   }
 })
 
-function getStatusMessage(t: {
-  [key: string]: GameStats;
-} | "pending" | "failed" | 'unloaded') {
+function retryReplays() {
+  for (const entry of props.data.response.data!.entries) {
+    if (entry.stub) continue
+    if (replayStatus(entry.replayid) == "failed") {
+      newReplay(props.data.username, entry.replayid, true)
+    }
+  }
+}
+
+function getStatusMessage(t: PlayerGameStats | "pending" | "failed" | 'unloaded') {
   const status = t
   if (status == 'failed' || status == 'pending' || status == 'unloaded') {
     return status
@@ -112,14 +196,18 @@ function getStatusMessage(t: {
 const queryStatus = computed(() => {
   let total = 0
   let okayed = 0
+  let failed = 0
   for (const entry of props.data.response.data!.entries.filter(x => !x.stub)) {
     total += 1
     const resp = getStatusMessage(replayStatus(entry.replayid))
     if (resp != 'pending' && resp != 'unloaded') {
       okayed += 1
+      if (resp == 'failed') {
+        failed += 1
+      }
     }
   }
-  return [okayed, total]
+  return [okayed, total, failed]
 })
 
 
@@ -148,7 +236,7 @@ function getRecordData(rec: RecordEntry) {
       oppScore = lb.wins
     }
   }
-  const scoreString = `${homeScore || '?'}-${oppScore || '?'}`
+  const scoreString = `${homeScore ?? '?'}-${oppScore ?? '?'}`
   let outcomeColor: string;
   if (Number.isNaN(homeScore) || Number.isNaN(oppScore)) {
     outcomeColor = 'white'
@@ -175,7 +263,7 @@ const flip = () => {
 const { setVisualize } = useVisualize()
 
 function openStats() {
-  const newStats: { [key: string]: GameStats } = {}
+  const newStats: PlayerGameStats = {}
   for (const rep of props.data.response.data!.entries) {
     let found = false
     for (const r of props.data.checkedReplays) {
@@ -190,20 +278,20 @@ function openStats() {
     const status = replayStatus(rep.replayid)
     if (typeof status == "object") {
       for (const key in status) {
-        if (key.toLowerCase() != props.data.username.toLowerCase()) {
+        if (key != props.data.userId) {
           continue
         }
-        if (key.toLowerCase() in newStats) {
-          combineStats(newStats[key.toLowerCase()], status[key])
+        if (key in newStats) {
+          combineStats(newStats[key].stats, status[key].stats)
         } else {
-          newStats[key.toLowerCase()] = structuredClone(status[key])
+          newStats[key] = structuredClone(status[key])
         }
       }
     }
   }
-  const cumulativeStats: Players = {}
+  const cumulativeStats: PlayerCumulativeStats = {}
   for (const key in newStats) {
-    cumulativeStats[key] = calculateCumulativeStats(newStats[key])
+    cumulativeStats[key] = { stats: calculateCumulativeStats(newStats[key].stats), username: newStats[key].username }
   }
   setVisualize(cumulativeStats)
   if (Object.keys(cumulativeStats).length == 0) return

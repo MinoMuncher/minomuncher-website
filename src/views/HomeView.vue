@@ -1,29 +1,31 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import Logo from '@/components/logoIcon.vue';;
+import Logo from '@/components/icons/logoIcon.vue';;
 import PlayerSearch from '@/components/playerSearch.vue';
 import FileUpload from '@/components/fileUpload.vue';
 import type { ProfileData } from '@/replay/types/profile';
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import ProfileCard from '@/components/profileCard.vue';
 import type { ReplayDropData } from '@/replay/types/replayDrop';
 import ReplayCard from '@/components/replayCard.vue';
 import InfoCard from '@/components/infoCard.vue';
-import { combineStats, type GameStats, type Players } from '@/replay/types/stats';
 import { useStatStore } from '@/stores/statFetch';
-import { calculateCumulativeStats } from '@/replay/statLogic';
+import { calculateCumulativeStats, combineStats, type PlayerCumulativeStats, type PlayerGameStats } from 'minomuncher-core';
 import { useVisualize } from '@/stores/visualize';
 import router from '@/router';
 import { useUsernameStore } from '@/stores/username';
 import type { LeagueResponse } from '@/replay/types/leagueRecord';
 import { useCardData } from '@/stores/cardData';
 import { storeToRefs } from 'pinia';
+import { usePriorityTokenStore } from '@/stores/priorityToken';
 
 const { cardData } = storeToRefs(useCardData())
 
 const { replayStatus, fileStatus } = useStatStore()
 const { setVisualize } = useVisualize()
 const { username } = useUsernameStore()
+
+const { priorityToken } = storeToRefs(usePriorityTokenStore())
 
 onMounted(async () => {
   setVisualize({})
@@ -33,7 +35,11 @@ onMounted(async () => {
   }
 
 
-  const resp = await fetch(`/api/user/${username.toLowerCase()}`)
+  const resp = await fetch(`/api/user/${username.toLowerCase()}`, {
+    headers: {
+      supporter: priorityToken.value
+    }
+  })
   const txt = await resp.text()
   const js = JSON.parse(txt)
   const id = js["data"]["_id"]
@@ -49,7 +55,11 @@ onMounted(async () => {
     throw Error("no user id found")
   }
   try {
-    const response = await fetch(`/api/league/${userId}`);
+    const response = await fetch(`/api/league/${userId}`, {
+      headers: {
+        supporter: priorityToken.value
+      }
+    });
     const json: LeagueResponse = await response.json();
 
     if (json.error === undefined && json.success && json.data && json.data.entries.length != 0) {
@@ -62,8 +72,7 @@ onMounted(async () => {
   }
 })
 
-function calculateVisualize() {
-  const newStats: { [key: string]: GameStats } = {}
+const dryCalculateVisualize = computed(() => {
   for (const data of cardData.value) {
     if (isProfileData(data)) {
       for (const rep of data.response.data!.entries) {
@@ -80,13 +89,61 @@ function calculateVisualize() {
         const status = replayStatus(rep.replayid)
         if (typeof status == "object") {
           for (const key in status) {
-            if (key.toLowerCase() != data.username.toLowerCase()) {
+            if (key != data.userId) {
               continue
             }
-            if (key.toLowerCase() in newStats) {
-              combineStats(newStats[key.toLowerCase()], status[key])
+            return true
+          }
+        }
+      }
+    } else {
+      const status = fileStatus(data.dataHash)
+      if (typeof status == "object") {
+        for (const key in status) {
+          let found = false
+          for (const r of data.checkedUsers) {
+            if (r == key) {
+              found = true
+              break;
+            }
+          }
+          if (!found) {
+            continue
+          }
+          return true
+        }
+      }
+    }
+  }
+  return false
+})
+
+
+function calculateVisualize() {
+  const newStats: PlayerGameStats = {}
+  for (const data of cardData.value) {
+    if (isProfileData(data)) {
+      for (const rep of data.response.data!.entries) {
+        let found = false
+        for (const r of data.checkedReplays) {
+          if (r == rep.replayid) {
+            found = true
+            break;
+          }
+        }
+        if (!found) {
+          continue
+        }
+        const status = replayStatus(rep.replayid)
+        if (typeof status == "object") {
+          for (const key in status) {
+            if (key != data.userId) {
+              continue
+            }
+            if (key in newStats) {
+              combineStats(newStats[key].stats, status[key].stats)
             } else {
-              newStats[key.toLowerCase()] = structuredClone(status[key])
+              newStats[key] = structuredClone(status[key])
             }
           }
         }
@@ -97,7 +154,7 @@ function calculateVisualize() {
         for (const key in status) {
           let found = false
           for (const r of data.checkedUsers) {
-            if (r.toLowerCase() == key.toLowerCase()) {
+            if (r == key) {
               found = true
               break;
             }
@@ -105,18 +162,18 @@ function calculateVisualize() {
           if (!found) {
             continue
           }
-          if (key.toLowerCase() in newStats) {
-            combineStats(newStats[key.toLowerCase()], status[key])
+          if (key in newStats) {
+            combineStats(newStats[key], status[key])
           } else {
-            newStats[key.toLowerCase()] = structuredClone(status[key])
+            newStats[key] = structuredClone(status[key])
           }
         }
       }
     }
   }
-  const cumulativeStats: Players = {}
+  const cumulativeStats: PlayerCumulativeStats = {}
   for (const key in newStats) {
-    cumulativeStats[key] = calculateCumulativeStats(newStats[key])
+    cumulativeStats[key] = { stats: calculateCumulativeStats(newStats[key].stats), username: newStats[key].username }
   }
   setVisualize(cumulativeStats)
   if (Object.keys(cumulativeStats).length == 0) return
@@ -145,6 +202,26 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
   return (card as ProfileData).username !== undefined;
 }
 
+async function reloadCard(card: ProfileData) {
+  cardData.value = cardData.value.filter(x => !isProfileData(x) || x.userId != card.userId)
+  const userId: string = card.userId
+  try {
+    const response = await fetch(`/api/league/${userId}`, {
+      headers: {
+        supporter: priorityToken.value
+      }
+    });
+    const json: LeagueResponse = await response.json();
+
+    if (json.error === undefined && json.success && json.data && json.data.entries.filter(x => !x.stub).length != 0) {
+      card.response = json
+      card.checkedReplays = json.data.entries.map(x => x.replayid)
+    }
+  } catch (error) {
+  }
+  cardData.value = [card, ...cardData.value]
+}
+
 </script>
 
 <template>
@@ -158,6 +235,7 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
           <nav>
             <RouterLink to="/about">About</RouterLink>
             <RouterLink to="/credits">Credits</RouterLink>
+            <RouterLink to="/supporter" class="awesomeLink">Go Pro</RouterLink>
           </nav>
         </div>
       </header>
@@ -165,11 +243,10 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
         cardData = [...files, ...cardData]
       }" />
       <div style="min-height: 50px;">
-        <button style="border-right: 1px solid var(--f_low);" @click="calculateVisualize()"
-          v-if="cardData.length > 0">render stats</button>
-        <button @click="cardData = []" v-if="cardData.length > 0"> clear all</button>
+        <button class="goodButton" style="border-right: 1px solid var(--f_low);" @click="calculateVisualize()"
+          v-if="dryCalculateVisualize">open all stats</button>
+        <button @click="cardData = []" v-if="cardData.length > 0">clear all</button>
       </div>
-
     </div>
 
     <div style="display: flex; flex-direction: column;">
@@ -188,10 +265,10 @@ function isProfileData(card: ProfileData | ReplayDropData): card is ProfileData 
               cardData = cardData.filter(x => !isProfileData(x) || x.userId != card.userId)
             }" @checked-replays="(y) => {
               updateCheckedReplays(card.userId, y)
-            }" />
+            }" @reload="reloadCard(card)" />
           <ReplayCard v-else :key="card.dataHash" :data="card" @exit="() => {
             cardData = cardData.filter(x => isProfileData(x) || x.dataHash != card.dataHash)
-          }" @checked-names="(y) => updateCheckedUsers(card.dataHash, y)" />
+          }" @checked-users="(y) => updateCheckedUsers(card.dataHash, y)" />
         </template>
 
       </TransitionGroup>
@@ -218,6 +295,18 @@ button:hover {
 
 button:active {
   color: var(--f_med);
+}
+
+.goodButton {
+  color: var(--rainbow_teal);
+}
+
+.goodButton:hover {
+  color: var(--rainbow_green);
+}
+
+.goodButton:active {
+  color: var(--f_high);
 }
 
 .list-move,
@@ -310,6 +399,10 @@ header .wrapper {
   display: flex;
   place-items: flex-start;
   flex-wrap: wrap;
+}
+
+.awesomeLink {
+  color: var(--rainbow_orange);
 }
 
 nav a:hover {

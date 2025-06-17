@@ -8,12 +8,15 @@
           </button>
           <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px; z-index: 3;"
             @click="$emit('exit')" />
+          <button v-if="queryStatus == 'completed'" class="openStatsLink" @click="calculateVisualize()"
+            style="position: absolute; bottom:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open
+            Stats</button>
           <div class="userData">
             <div class="fileName">replay.ttrm</div>
             <div class="fileUsers" v-bind:style="{ color: `${defaultRainbow.teal}`, textAlign: 'center' }">
               <div v-for="(user, index) in props.data.users" :key="index">
                 <strong v-bind:style="{ color: defaultRainbow.green, whiteSpace: 'nowrap' }"
-                  v-if="checkedNames.includes(user.username)">{{
+                  v-if="checkedUsers.some(x => x == user.id)">{{
                     user.username
                   }}</strong>
                 <span v-else> {{ user.username }}</span>
@@ -30,21 +33,32 @@
     </div>
     <div class="back">
       <slot name="back">
-        <div class="card backCard">
+        <div class="card">
           <button class="flipButton fade-in" @click="flip">
             <FlipIcon />
           </button>
-          <button class="openStatsLink" @click="calculateVisualize()"
-            style="position: absolute; bottom:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open
-            Stats</button>
-          <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px" @click="$emit('exit')" />
-          <div class="userList">
-            <label v-for="user of props.data.users" v-bind:key="user.id" class="checkContainer">{{ user.username }}
-              <input type="checkbox" @change="$emit('checkedNames', checkedNames)" v-bind:value="user.username"
-                v-model="checkedNames">
-              <span class="checkmark"></span>
-            </label>
-          </div>
+          <CloseIcon class="editIcon" style="position: absolute; top:20px; right: 20px; z-index: 3;"
+            @click="$emit('exit')" />
+          <template v-if="queryStatus == 'completed'">
+            <button class="openStatsLink" @click="calculateVisualize()"
+              style="position: absolute; bottom:20px; left: 50%; transform: translateX(-50%); z-index: 3">Open
+              Stats</button>
+            <div class="userList">
+              <label v-for="user of props.data.users" v-bind:key="user.id" class="checkContainer">{{ user.username }}
+                <input type="checkbox" @change="$emit('checkedUsers', checkedUsers)" v-bind:value="user.id"
+                  v-model="checkedUsers">
+                <span class="checkmark"></span>
+              </label>
+            </div>
+          </template>
+          <template v-else>
+            <div v-if="queryStatus == 'pending'" class="fileName"> Retrying...</div>
+            <div v-else class="fileName" :style="{ color: defaultRainbow.red }"
+              v-text="retries == 0 ? 'Replay Failed' : `Failed ${retries + 1}x`"></div>
+            <button v-text="retries < 2 ? 'Retry' : 'Report This!'" :disabled="queryStatus == 'pending' || retries >= 2"
+              class="openStatsLink"
+              @click="() => { retries += 1; newFile(props.data.dataHash, props.data.data, true) }"></button>
+          </template>
         </div>
       </slot>
     </div>
@@ -57,15 +71,16 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import CloseIcon from "./closeIcon.vue";
+import CloseIcon from "./icons/closeIcon.vue";
 import { defaultRainbow } from "@/theme/colors";
-import FlipIcon from "./flipIcon.vue";
+import FlipIcon from "./icons/flipIcon.vue";
 import { useStatStore } from "@/stores/statFetch";
 import type { ReplayDropData } from "@/replay/types/replayDrop";
-import { combineStats, type GameStats, type Players } from "@/replay/types/stats";
-import { calculateCumulativeStats } from "@/replay/statLogic";
 import { useVisualize } from "@/stores/visualize";
 import router from "@/router";
+import { calculateCumulativeStats, combineStats, type PlayerCumulativeStats, type PlayerGameStats } from "minomuncher-core";
+const retries = ref(0)
+
 const props = defineProps<{
   data: ReplayDropData,
 }>()
@@ -76,9 +91,7 @@ onMounted(() => {
   newFile(props.data.dataHash, props.data.data)
 })
 
-function getStatusMessage(t: {
-  [key: string]: GameStats;
-} | "pending" | "failed" | 'unloaded') {
+function getStatusMessage(t: PlayerGameStats | "pending" | "failed" | 'unloaded') {
   const status = t
   if (status == 'failed' || status == 'pending' || status == 'unloaded') {
     return status
@@ -92,24 +105,24 @@ const queryStatus = computed(() => {
 
 defineEmits<{
   (e: 'exit'): void,
-  (e: 'checkedNames', value: string[]): void
+  (e: 'checkedUsers', value: string[]): void
 }>()
 const flipped = ref(false);
 const flip = () => {
   flipped.value = !flipped.value
 };
-const checkedNames = ref(props.data.checkedUsers)
+const checkedUsers = ref(props.data.checkedUsers)
 
 const { setVisualize } = useVisualize()
 
 function calculateVisualize() {
-  const newStats: { [key: string]: GameStats } = {}
+  const newStats: PlayerGameStats = {}
   const status = fileStatus(props.data.dataHash)
   if (typeof status == "object") {
     for (const key in status) {
       let found = false
       for (const r of props.data.checkedUsers) {
-        if (r.toLowerCase() == key.toLowerCase()) {
+        if (r == key) {
           found = true
           break;
         }
@@ -117,15 +130,15 @@ function calculateVisualize() {
       if (!found) {
         continue
       }
-      if (key.toLowerCase() in newStats) {
-        combineStats(newStats[key.toLowerCase()], status[key])
+      if (key in newStats) {
+        combineStats(newStats[key], status[key])
       } else {
-        newStats[key.toLowerCase()] = structuredClone(status[key])
+        newStats[key] = structuredClone(status[key])
       }
     }
-    const cumulativeStats: Players = {}
+    const cumulativeStats: PlayerCumulativeStats = {}
     for (const key in newStats) {
-      cumulativeStats[key] = calculateCumulativeStats(newStats[key])
+      cumulativeStats[key] = { stats: calculateCumulativeStats(newStats[key].stats), username: newStats[key].username }
     }
     setVisualize(cumulativeStats)
     if (Object.keys(cumulativeStats).length == 0) return

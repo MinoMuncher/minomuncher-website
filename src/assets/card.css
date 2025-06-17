@@ -41,6 +41,7 @@
   padding: 0;
   font: inherit;
   outline: inherit;
+  font-size: 20px;
 
   user-select: none;
   color: var(--f_low);
@@ -60,8 +61,22 @@
   height: 200px;
   border-radius: 20px;
   border: 1px solid var(--b_high);
-  margin: 20px;
-  margin-top: 40px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.profileName {
+  color: var(--f_high);
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 10px;
 }
 
 .userData {
@@ -83,10 +98,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-.backCard {
-  position: absolute;
 }
 
 .fade-in {

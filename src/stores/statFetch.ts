@@ -1,12 +1,14 @@
 import { shallowRef, triggerRef } from 'vue'
-import { defineStore } from 'pinia'
-import type { GameStats } from '@/replay/types/stats'
+import { defineStore, storeToRefs } from 'pinia'
+import type { PlayerGameStats } from 'minomuncher-core'
+import { usePriorityTokenStore } from './priorityToken'
 
-export type FileStatFetch = { fileHash: string, res: { [key: string]: GameStats } | 'pending' | 'failed' }
-export type ReplayStatFetch = { playerName: string, replayId: string, res: { [key: string]: GameStats } | 'pending' | 'failed' }
+export type FileStatFetch = { fileHash: string, res: PlayerGameStats | 'pending' | 'failed' }
+export type ReplayStatFetch = { playerName: string, replayId: string, res: PlayerGameStats | 'pending' | 'failed' }
 export type StatFetch = FileStatFetch | ReplayStatFetch
 
 export const useStatStore = defineStore('statFetches', () => {
+  const { priorityToken } = storeToRefs(usePriorityTokenStore())
   const statFetches = shallowRef<StatFetch[]>([])
   function popQueries() {
     if (statFetches.value.length > 200) {
@@ -32,10 +34,15 @@ export const useStatStore = defineStore('statFetches', () => {
     return 'unloaded'
   }
 
-  function newReplay(playerName: string, replayId: string) {
-    for (const x of statFetches.value) {
+  function newReplay(playerName: string, replayId: string, override: boolean = false) {
+    for (const [index, x] of statFetches.value.entries()) {
       if ('replayId' in x && replayId === x.replayId) {
-        return x.res
+        if (override) {
+          statFetches.value.splice(index, 1)
+        } else {
+          return x.res
+
+        }
       }
     }
     const resp: ReplayStatFetch = {
@@ -43,18 +50,21 @@ export const useStatStore = defineStore('statFetches', () => {
       replayId,
       res: 'pending'
     }
-    fetch(`/api/replay/${replayId}`).then(x => x.json()).then(x => {
+    fetch(`/api/replay/${replayId}`, {
+      headers: {
+        supporter: priorityToken.value
+      }
+    }).then(x => x.json()).then(x => {
       if (Object.keys(x).length == 0) {
         throw Error("no data from replay")
       }
-      for (const key in x) {
-        if (!('death' in x[key])) {
+      for (const key in x.stats) {
+        if (!('death' in x.stats[key])) {
           throw Error("invalid replay")
         }
       }
       resp.res = x
       triggerRef(statFetches)
-      console.log("finished!")
     }).catch(e => {
       console.error(e)
       triggerRef(statFetches)
@@ -65,10 +75,15 @@ export const useStatStore = defineStore('statFetches', () => {
     triggerRef(statFetches)
     return 'pending'
   }
-  function newFile(fileHash: string, data: string) {
-    for (const x of statFetches.value) {
-      if ('fileHash' in x && fileHash === x.fileHash) {
-        return x.res
+  function newFile(fileHash: string, data: string, override: boolean = false) {
+    for (const [index, x] of statFetches.value.entries()) {
+      if ('fileHash' in x && fileHash === x.fileHash && x.res) {
+        if (override) {
+          statFetches.value.splice(index, 1)
+
+        } else {
+          return x.res
+        }
       }
     }
     const resp: FileStatFetch = {
@@ -78,19 +93,20 @@ export const useStatStore = defineStore('statFetches', () => {
     fetch("/api/replay", {
       method: "POST",
       body: data,
+      headers: {
+        supporter: priorityToken.value
+      }
     }).then(x => x.json()).then(x => {
       if (Object.keys(x).length == 0) {
         throw Error("no data from replay")
       }
-      for (const key in x) {
-        if (!('death' in x[key])) {
+      for (const key in x.stats) {
+        if (!('death' in x.stats[key])) {
           throw Error("invalid replay")
         }
       }
-      console.log(x)
       resp.res = x
       triggerRef(statFetches)
-      console.log("finished!")
     }).catch(e => {
       console.error(e)
       triggerRef(statFetches)
@@ -102,7 +118,12 @@ export const useStatStore = defineStore('statFetches', () => {
     return 'pending'
   }
 
-  return { statFetches, newReplay, newFile, fileStatus, replayStatus }
+  function reset() {
+    statFetches.value = []
+    triggerRef(statFetches)
+  }
+
+  return { statFetches, newReplay, newFile, fileStatus, replayStatus, reset }
 
 }, {
   persist: true

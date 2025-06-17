@@ -9,7 +9,11 @@
 import type { LeagueResponse } from '@/replay/types/leagueRecord';
 import type { ProfileData } from '@/replay/types/profile';
 import type { ReplayDropData } from '@/replay/types/replayDrop';
+import { usePriorityTokenStore } from '@/stores/priorityToken';
+import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
+
+const { priorityToken } = storeToRefs(usePriorityTokenStore())
 
 const props = defineProps<{
   cards: (ProfileData | ReplayDropData)[]
@@ -37,7 +41,11 @@ async function onUsernameSubmit() {
   let userId: string | undefined
 
   try {
-    const resp = await fetch(`/api/user/${submittingUsername.value.toLowerCase()}`)
+    const resp = await fetch(`/api/user/${submittingUsername.value.toLowerCase()}`, {
+      headers: {
+        supporter: priorityToken.value
+      }
+    })
     const txt = await resp.text()
     const js = JSON.parse(txt)
     const id = js["data"]["_id"]
@@ -53,7 +61,11 @@ async function onUsernameSubmit() {
       throw Error("no user id found")
     }
     try {
-      const response = await fetch(`/api/league/${userId}`);
+      const response = await fetch(`/api/league/${userId}`, {
+        headers: {
+          supporter: priorityToken.value
+        }
+      });
       const json: LeagueResponse = await response.json();
 
       if (json.error !== undefined) {

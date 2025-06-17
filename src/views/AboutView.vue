@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LogoIcon from '@/components/logoIcon.vue';
+import LogoIcon from '@/components/icons/logoIcon.vue';
 import { useVisualize } from '@/stores/visualize';
 import { onMounted, ref } from 'vue';
 

@@ -1,6 +1,6 @@
 {
-  "name": "minomuncher",
-  "version": "0.0.0",
+  "name": "minomuncher-website",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "d3": "^7.9.0",
-    "gaussian-mixture": "^0.9.1",
     "identicon.js": "^2.3.3",
     "md5": "^2.3.0",
+    "minomuncher-core": "^0.0.3",
     "pinia": "^3.0.1",
     "pinia-plugin-persistedstate": "^4.3.0",
     "vue": "^3.5.13",

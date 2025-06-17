@@ -2,7 +2,7 @@
   <div id="scene">
     <div id="left-zone">
       <ul class="list">
-        <li v-for="key in OrderedGraphTypes" v-bind:key="key" class="item">
+        <li v-for="key in ORDERED_GRAPH_TYPES" v-bind:key="key" class="item">
           <button v-bind:class="{ selected: selectedGraph === key }" @click="newGraph(key)">{{
             key }}</button>
         </li>
@@ -22,7 +22,7 @@
 <script setup lang="ts">
 import router from '@/router';
 import { ref } from 'vue';
-import { OrderedGraphTypes, type GraphType } from '@/graphs/types';
+import { ORDERED_GRAPH_TYPES, type GraphType } from 'minomuncher-core';
 import GraphWrapper from '@/components/graphWrapper.vue';
 import { defaultRainbow } from '@/theme/colors';
 import { useVisualize } from '@/stores/visualize';
@@ -35,9 +35,7 @@ const selectedGraph = ref<GraphType>("clear types")
 
 
 function newGraph(t: GraphType) {
-  console.log(t)
   selectedGraph.value = t
-
 }
 </script>
 <style lang="css" scoped>

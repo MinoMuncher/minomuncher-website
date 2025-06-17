@@ -1,10 +1,10 @@
-import { type Players, } from "@/replay/types/stats"
+import type { PlayerCumulativeStats } from "minomuncher-core"
 import { defineStore } from "pinia"
 import { ref } from "vue"
 
 export const useVisualize = defineStore('visualize', () => {
-  const visualize = ref<Players>({})
-  function setVisualize(newVis: Players) {
+  const visualize = ref<PlayerCumulativeStats>({})
+  function setVisualize(newVis: PlayerCumulativeStats) {
     visualize.value = newVis
   }
   return { visualize, setVisualize }

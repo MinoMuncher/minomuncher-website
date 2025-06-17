@@ -1,4 +1,3 @@
-
 export const defaultScheme = {
     background: "#222222",
     f_high: "#ffffff",

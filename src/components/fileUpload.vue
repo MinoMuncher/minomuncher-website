@@ -46,7 +46,7 @@ async function handleFiles(files: FileList) {
         continue
       }
       if ('users' in rawData && Array.isArray(rawData['users'])) {
-        const checked = rawData['users'].map(x => (x as User).username)
+        const checked = rawData['users'].map(x => (x as User).id)
         if (checked.length == 0) {
           errorMessage.value = "no users"
           setTimeout(() => errorMessage.value = '', 2000)
