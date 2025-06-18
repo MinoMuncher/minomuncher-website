@@ -7,6 +7,9 @@
             key }}</button>
         </li>
         <li class="item">
+          <button @click="downloadRaw()" :style="{ color: defaultRainbow.green }">download</button>
+        </li>
+        <li class="item">
           <button @click="router.push({ path: '/home' })" :style="{ color: defaultRainbow.red }">
             back</button>
         </li>
@@ -33,6 +36,22 @@ const data = Object.keys(cachedData).length > 0 ? cachedData : demoStats
 
 const selectedGraph = ref<GraphType>("clear types")
 
+function downloadRaw() {
+  const file = new File([JSON.stringify(data)], 'rawStats.json', {
+    type: 'text/plain',
+  })
+
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(file)
+
+  link.href = url
+  link.download = file.name
+  document.body.appendChild(link)
+  link.click()
+
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}
 
 function newGraph(t: GraphType) {
   selectedGraph.value = t

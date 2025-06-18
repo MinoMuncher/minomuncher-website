@@ -63,7 +63,7 @@
         All stats are percentages <br>
         <strong>Quad</strong>: tetris / i pieces<br>
         <strong>Tspin</strong>: tspins / t pieces<br>
-        <strong>Allspin</strong>: allspins / pieces used to in line clears (not including t, i, or o
+        <strong>Allspin</strong>: allspins / pieces used to be used in line clears (not including t, i, or o
         pieces)
       </p>
       <p v-else-if="type == 'well columns'">
@@ -83,7 +83,7 @@
         <strong>Surge Conflict</strong>: you and your opponent both activated surge spikes shortly before game end.<br>
         <strong>Surge</strong>: your opponent activated surge shortly before you died.<br>
         <strong>Cheese Spike</strong>: you had cheese on your board and were spike shortly before you died.<br>
-        <strong>Spike</strong>: you were spiked sortly before you died.<br>
+        <strong>Spike</strong>: you were spiked shortly before you died.<br>
         <strong>Cheese</strong>: you had cheese on your board shortly before you died.<br>
         <strong>Pressure</strong>: none of the above apply.
       </p>
