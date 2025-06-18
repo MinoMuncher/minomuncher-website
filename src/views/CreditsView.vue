@@ -14,7 +14,7 @@ const DONORS = [
   "SWNG!!!",
   "ORZ ORZ",
   "TY Kerr",
-  "TY Nancy!"
+  "TY Flowerpetal!"
 ]
 
 const currentDonor = ref(DONORS[0])
@@ -54,7 +54,7 @@ onMounted(() => {
         <a href="https://www.twitch.tv/mewk___" target="_blank">Mewk </a>
         <a href="https://x.com/skyfire_tetris" target="_blank">Skyfire </a>
         <a href="https://www.instagram.com/baronc.cc" target="_blank">Baron </a>
-        Nancy
+        <a href="https://ch.tetr.io/u/flowerpetal" target="_blank">flowerpetal</a>
       </b>
       <b style="color: var(--rainbow_orange)">
         swng
@@ -62,7 +62,7 @@ onMounted(() => {
       <b style="color: var(--rainbow_yellow)">
         <a href="https://www.twitch.tv/pokimane" target="_blank">Andrew</a>
         Orz
-        Kerr
+        <a href=" https://youtube.com/@Kerrmunism" target="_blank">Kerr</a>
         Beyeet
       </b>
     </p>
